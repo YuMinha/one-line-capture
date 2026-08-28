@@ -36,9 +36,12 @@ public class Link {
 
     protected Link() {}
 
+    // note는 300자, raw_text는 500자다. Todo.title과 같은 이유로 여기서 자른다
+    private static final int NOTE_MAX = 300;
+
     public Link(Capture capture, String url, String note) {
         this.capture = capture;
         this.url = url;
-        this.note = note;
+        this.note = note != null && note.length() > NOTE_MAX ? note.substring(0, NOTE_MAX) : note;
     }
 }
