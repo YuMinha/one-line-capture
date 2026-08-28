@@ -122,5 +122,5 @@ curl -X POST localhost:8080/api/v1/captures \
 
 > 태스크를 끝낼 때마다 이 줄을 갱신한다.
 
-**진행 중:** T2.1 (ParseRule / ParsedCapture / CaptureParser / Clock 빈)
-**완료:** T1.1 ~ T1.8 (1주차 완료)
+**진행 중:** T2.2 (LinkRule + 테스트)
+**완료:** T1.1 ~ T1.8 (1주차), T2.1
