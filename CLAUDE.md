@@ -122,5 +122,5 @@ curl -X POST localhost:8080/api/v1/captures \
 
 > 태스크를 끝낼 때마다 이 줄을 갱신한다.
 
-**진행 중:** T1.7 (@SpringBootTest 통합테스트)
-**완료:** T1.1 ~ T1.6
+**진행 중:** T1.8 (Dockerfile + compose api 서비스)
+**완료:** T1.1 ~ T1.7
