@@ -26,5 +26,23 @@ services:
       retries: 20
       start_period: 30s
 
+  api:
+    build: ./api
+    restart: unless-stopped
+    environment:
+      # 컨테이너 안에서 DB 주소는 서비스 이름 db다. 127.0.0.1은 자기 자신이라
+      # 절대 DB를 못 찾는다 (tasks.md T1.8 함정 ①). .env의 URL은 로컬 실행/테스트용이다
+      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/${MYSQL_DATABASE}?connectionTimeZone=UTC
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      TZ: UTC
+    depends_on:
+      # DB가 healthy가 될 때까지 기다린다. 이게 없으면 앱이 먼저 떠서
+      # 연결 실패로 죽는다 (tasks.md T1.8 함정 ②)
+      db:
+        condition: service_healthy
+    ports:
+      - "${API_PORT:-8080}:8080"
+
 volumes:
   db-data:
