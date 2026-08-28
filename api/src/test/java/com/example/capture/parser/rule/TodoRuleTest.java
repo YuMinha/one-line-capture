@@ -97,4 +97,53 @@ class TodoRuleTest {
     void 타입은_TODO() {
         assertThat(parse("내일 과제").type()).isEqualTo(CaptureType.TODO);
     }
+
+    @ParameterizedTest(name = "[{index}] {0} → {1}")
+    @CsvSource(delimiter = '|', value = {
+            "내일 3시 과제 제출     | 2026-08-26T15:00 | 과제 제출",
+            "내일 오후 3시 발표     | 2026-08-26T15:00 | 발표",
+            "내일 오전 9시 회의     | 2026-08-26T09:00 | 회의",
+            "내일 15시 회의         | 2026-08-26T15:00 | 회의",
+            "내일 3시30분 통화      | 2026-08-26T15:30 | 통화",
+            "9/2 오후 2시 발표      | 2026-09-02T14:00 | 발표",
+            "금요일 7시 회식        | 2026-08-28T19:00 | 회식",
+            "오늘 오전 11시 병원    | 2026-08-25T11:00 | 병원",
+    })
+    @DisplayName("날짜 + 시각 조합")
+    void 날짜와_시각(String raw, String expectedDue, String expectedTitle) {
+        ParsedCapture.Todo todo = parse(raw.trim());
+
+        assertThat(todo.dueAt()).isEqualTo(LocalDateTime.parse(expectedDue));
+        assertThat(todo.title()).isEqualTo(expectedTitle);
+    }
+
+    @ParameterizedTest(name = "[{index}] {0} → {1}")
+    @CsvSource(delimiter = '|', value = {
+            "3시 회의     | 2026-08-25T15:00 | 회의",
+            "15시 회의    | 2026-08-25T15:00 | 회의",
+            "오후 3시 회의 | 2026-08-25T15:00 | 회의",
+            "오전 9시 회의 | 2026-08-26T09:00 | 회의",
+    })
+    @DisplayName("시각만 있으면 오늘, 이미 지났으면 내일 (기준 10:00)")
+    void 시각만(String raw, String expectedDue, String expectedTitle) {
+        ParsedCapture.Todo todo = parse(raw.trim());
+
+        assertThat(todo.dueAt()).isEqualTo(LocalDateTime.parse(expectedDue));
+        assertThat(todo.title()).isEqualTo(expectedTitle);
+    }
+
+    @Test
+    @DisplayName("3시30분의 30을 날짜로 오해하지 않는다")
+    void 분을_날짜로_오해하지_않는다() {
+        ParsedCapture.Todo todo = parse("3시30분 통화");
+
+        assertThat(todo.dueAt()).isEqualTo(LocalDateTime.of(2026, 8, 25, 15, 30));
+        assertThat(todo.title()).isEqualTo("통화");
+    }
+
+    @Test
+    @DisplayName("25시 같은 없는 시각은 시각으로 치지 않는다")
+    void 없는_시각() {
+        assertThat(rule.tryParse("25시 회의", NOW)).isEmpty();
+    }
 }

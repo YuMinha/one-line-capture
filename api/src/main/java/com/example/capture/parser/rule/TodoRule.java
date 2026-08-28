@@ -26,6 +26,10 @@ public class TodoRule implements ParseRule {
     private static final Pattern RELATIVE = Pattern.compile("(오늘|내일|모레|다음\\s*주)");
     private static final Pattern WEEKDAY = Pattern.compile("(?:이번\\s*주\\s*)?([월화수목금토일])요일");
 
+    // 오전/오후 + N시 + M분. "3시30분", "오후 3시", "15시"를 모두 잡는다
+    private static final Pattern TIME =
+            Pattern.compile("(오전|오후)?\\s*(\\d{1,2})\\s*시(?:\\s*(\\d{1,2})\\s*분)?");
+
     private static final Map<String, DayOfWeek> DAYS = Map.of(
             "월", DayOfWeek.MONDAY, "화", DayOfWeek.TUESDAY, "수", DayOfWeek.WEDNESDAY,
             "목", DayOfWeek.THURSDAY, "금", DayOfWeek.FRIDAY, "토", DayOfWeek.SATURDAY,
@@ -33,20 +37,79 @@ public class TodoRule implements ParseRule {
 
     @Override
     public Optional<ParsedCapture> tryParse(String raw, LocalDateTime now) {
+        Optional<Match<LocalTime>> time = findTime(raw);
+        Optional<Match<LocalDate>> date = findDate(raw, now.toLocalDate(), time);
+
+        if (date.isEmpty() && time.isEmpty()) {
+            return Optional.empty();
+        }
+
+        LocalDateTime dueAt = date
+                .map(d -> d.value().atTime(time.map(Match::value).orElse(DEFAULT_TIME)))
+                // 시각만 있으면 오늘. 이미 지났으면 내일로 민다
+                .orElseGet(() -> onTodayOrTomorrow(time.orElseThrow().value(), now));
+
+        return Optional.of(new ParsedCapture.Todo(titleWithout(raw, date, time), dueAt));
+    }
+
+    private record Match<T>(T value, int start, int end) {}
+
+    private Optional<Match<LocalDate>> findDate(String raw, LocalDate today, Optional<Match<LocalTime>> time) {
         for (Pattern pattern : List.of(ABSOLUTE_KOREAN, ABSOLUTE_SLASH, RELATIVE, WEEKDAY)) {
             Matcher matcher = pattern.matcher(raw);
-            if (!matcher.find()) {
-                continue;
+            while (matcher.find()) {
+                // "3시30분"의 30을 9/2 같은 날짜로 오해하지 않도록 시각 구간과 겹치면 건너뛴다
+                if (time.filter(t -> matcher.start() < t.end() && t.start() < matcher.end()).isPresent()) {
+                    continue;
+                }
+                Optional<LocalDate> value = toDate(pattern, matcher, today);
+                if (value.isPresent()) {
+                    return Optional.of(new Match<>(value.get(), matcher.start(), matcher.end()));
+                }
             }
-            Optional<LocalDate> date = toDate(pattern, matcher, now.toLocalDate());
-            if (date.isEmpty()) {
-                continue;
-            }
-            return Optional.of(new ParsedCapture.Todo(
-                    title(raw, matcher.start(), matcher.end()),
-                    date.get().atTime(DEFAULT_TIME)));
         }
         return Optional.empty();
+    }
+
+    private Optional<Match<LocalTime>> findTime(String raw) {
+        Matcher matcher = TIME.matcher(raw);
+        if (!matcher.find()) {
+            return Optional.empty();
+        }
+        int hour = Integer.parseInt(matcher.group(2));
+        int minute = matcher.group(3) == null ? 0 : Integer.parseInt(matcher.group(3));
+        String meridiem = matcher.group(1);
+        if ("오후".equals(meridiem) && hour < 12) {
+            hour += 12;
+        } else if ("오전".equals(meridiem) && hour == 12) {
+            hour = 0;
+        } else if (meridiem == null && hour >= 1 && hour <= 11) {
+            // spec.md §3: "내일 3시 과제 제출"은 15:00이다. 오전/오후를 안 쓰면 오후로 본다.
+            // 아침을 뜻했다면 "오전 9시"처럼 써야 한다
+            hour += 12;
+        }
+        if (hour > 23 || minute > 59) {
+            return Optional.empty();
+        }
+        return Optional.of(new Match<>(LocalTime.of(hour, minute), matcher.start(), matcher.end()));
+    }
+
+    private LocalDateTime onTodayOrTomorrow(LocalTime time, LocalDateTime now) {
+        LocalDateTime today = now.toLocalDate().atTime(time);
+        return today.isAfter(now) ? today : today.plusDays(1);
+    }
+
+    private String titleWithout(String raw, Optional<Match<LocalDate>> date, Optional<Match<LocalTime>> time) {
+        StringBuilder sb = new StringBuilder(raw);
+        // 뒤에서부터 지워야 앞 구간의 인덱스가 밀리지 않는다
+        java.util.stream.Stream.of(date.map(d -> new int[]{d.start(), d.end()}).orElse(null),
+                        time.map(t -> new int[]{t.start(), t.end()}).orElse(null))
+                .filter(java.util.Objects::nonNull)
+                .sorted((a, b) -> Integer.compare(b[0], a[0]))
+                .forEach(range -> sb.replace(range[0], range[1], " "));
+
+        String rest = sb.toString().replaceAll("\\s+", " ").trim();
+        return rest.isEmpty() ? raw.trim() : rest;
     }
 
     private Optional<LocalDate> toDate(Pattern pattern, Matcher matcher, LocalDate today) {
@@ -85,11 +148,5 @@ public class TodoRule implements ParseRule {
         return today.plusDays(gap);
     }
 
-    // 날짜 표현을 지우면 제목이 빈 문자열이 될 수 있다. title은 NOT NULL이라 원문으로 되돌린다
-    private String title(String raw, int start, int end) {
-        String rest = (raw.substring(0, start) + " " + raw.substring(end))
-                .replaceAll("\\s+", " ")
-                .trim();
-        return rest.isEmpty() ? raw.trim() : rest;
-    }
+
 }
