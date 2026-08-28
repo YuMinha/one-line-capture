@@ -122,5 +122,5 @@ curl -X POST localhost:8080/api/v1/captures \
 
 > 태스크를 끝낼 때마다 이 줄을 갱신한다.
 
-**진행 중:** T1.4 (Flyway V1__create_capture.sql)
-**완료:** T1.1, T1.2, T1.3
+**진행 중:** T1.5 (V2~V4 상세 테이블 + 엔티티 4개 @MapsId)
+**완료:** T1.1 ~ T1.4
