@@ -39,9 +39,13 @@ public class Todo {
 
     protected Todo() {}
 
+    // title은 200자, raw_text는 500자다. 원문은 capture.raw_text에 온전히 남으므로
+    // 여기서 자른다. 모든 Todo 생성이 이 생성자를 지나가므로 한 곳만 막으면 된다
+    private static final int TITLE_MAX = 200;
+
     public Todo(Capture capture, String title, LocalDateTime dueAt) {
         this.capture = capture;
-        this.title = title;
+        this.title = title.length() > TITLE_MAX ? title.substring(0, TITLE_MAX) : title;
         this.dueAt = dueAt;
     }
 }
