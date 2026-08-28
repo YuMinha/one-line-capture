@@ -513,7 +513,7 @@ MYSQL_PASSWORD=change-me
 MYSQL_ROOT_PASSWORD=change-me-too
 
 # --- API ---
-SPRING_DATASOURCE_URL=jdbc:mysql://db:3306/capture?characterEncoding=utf8mb4&serverTimezone=UTC
+SPRING_DATASOURCE_URL=jdbc:mysql://db:3306/capture?connectionTimeZone=UTC
 API_TOKEN=change-me-to-a-long-random-string
 TZ=UTC
 
@@ -523,6 +523,13 @@ VITE_API_BASE_URL=http://localhost:8080/api/v1
 # --- 배포 시에만 ---
 DOMAIN=capture.example.com
 ```
+
+> **JDBC URL에서 `characterEncoding=utf8mb4`를 쓰면 앱이 기동하지 않는다.**
+> `UnsupportedEncodingException: utf8mb4` — 이 옵션은 **Java charset 이름**을 받는데 `utf8mb4`는
+> MySQL 쪽 이름이라 JVM에 그런 charset이 없다. Connector/J 8+는 기본값이 이미 UTF-8이고
+> 서버 쪽에서 알아서 utf8mb4로 매핑하므로 **그냥 빼는 게 맞다.** utf8mb4는 DB/테이블 설정으로
+> 보장한다(§2.1 DDL, compose의 `--character-set-server`). `serverTimezone`도 8.0.23부터
+> deprecated라 후속인 `connectionTimeZone`을 쓴다.
 
 **API 주소를 환경변수로 빼는 게 왜 중요한가:** 프론트 코드에 `http://localhost:8080`이 박혀 있으면
 배포하는 순간 전부 찾아 고쳐야 하고, 반드시 하나를 빠뜨린다. `VITE_API_BASE_URL` 하나로

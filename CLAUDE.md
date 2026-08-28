@@ -122,5 +122,5 @@ curl -X POST localhost:8080/api/v1/captures \
 
 > 태스크를 끝낼 때마다 이 줄을 갱신한다.
 
-**진행 중:** T1.3 (docker-compose에 MySQL 서비스 추가)
-**완료:** T1.1, T1.2
+**진행 중:** T1.4 (Flyway V1__create_capture.sql)
+**완료:** T1.1, T1.2, T1.3

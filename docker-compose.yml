@@ -1,0 +1,30 @@
+services:
+  db:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      TZ: UTC
+    # 이모지가 들어와도 깨지지 않게 서버 기본 charset을 utf8mb4로 (stack.md §2.2)
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    ports:
+      # 호스트 3306이 이미 쓰이고 있으면 .env의 MYSQL_PORT만 바꾼다. 컨테이너 안은 항상 3306
+      - "${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - db-data:/var/lib/mysql
+    healthcheck:
+      # -h 127.0.0.1로 TCP를 강제한다. 초기화 중 임시 서버는 소켓만 열려 있어서
+      # 소켓으로 ping하면 아직 준비 안 됐는데도 성공으로 잡힌다
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+volumes:
+  db-data:
