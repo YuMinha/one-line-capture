@@ -59,6 +59,11 @@ public record CaptureResponse(
         };
     }
 
+    // 타입이 섞인 전체 목록은 상세 없이 요약만 내려간다 (stack.md §2.5)
+    public static CaptureResponse summary(Capture capture) {
+        return base(capture);
+    }
+
     private static CaptureResponse base(Capture capture) {
         return new CaptureResponse(capture.getId(), capture.getType(), capture.getRawText(),
                 capture.getSource(), utc(capture.getCreatedAt()), null, null, null);

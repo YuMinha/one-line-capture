@@ -3,7 +3,10 @@ package com.example.capture.capture;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import com.example.capture.capture.domain.CaptureType;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -15,6 +18,15 @@ import org.springframework.web.bind.annotation.RestController;
 public class CaptureController {
 
     private final CaptureService captureService;
+
+    @GetMapping
+    public CaptureListResponse list(
+            @RequestParam(required = false) CaptureType type,
+            @RequestParam(required = false) Long cursor,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) Boolean done) {
+        return captureService.list(type, cursor, size, done);
+    }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
