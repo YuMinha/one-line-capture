@@ -42,3 +42,12 @@ window.addEventListener('api:unauthorized', () => {
   clearToken()
   route()
 })
+
+// 서비스워커는 배포본에서만 등록한다. 개발 중에는 캐시가 HMR을 방해한다
+if ('serviceWorker' in navigator && import.meta.env?.PROD) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {
+      // 등록 실패해도 앱은 그대로 동작한다. 홈 화면 설치만 안 될 뿐이다
+    })
+  })
+}
