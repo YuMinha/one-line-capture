@@ -6,6 +6,7 @@ import com.example.capture.capture.domain.CaptureType;
 import com.example.capture.capture.domain.Expense;
 import com.example.capture.capture.domain.Link;
 import com.example.capture.capture.domain.Todo;
+import com.example.capture.parser.ParsedCapture;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -44,6 +45,18 @@ public record CaptureResponse(
     public static CaptureResponse of(Capture capture, Link link) {
         return base(capture)
                 .withLink(new LinkDetail(link.getUrl(), link.getNote(), utc(link.getReadAt())));
+    }
+
+    // 저장 전 파싱 결과. id/source/createdAt이 없으므로 NON_NULL 덕에 응답에서 빠진다
+    public static CaptureResponse preview(String rawText, ParsedCapture parsed) {
+        return switch (parsed) {
+            case ParsedCapture.Expense e -> new CaptureResponse(null, e.type(), rawText, null, null,
+                    new ExpenseDetail(normalize(e.amount()), e.merchant(), e.spentAt()), null, null);
+            case ParsedCapture.Todo t -> new CaptureResponse(null, t.type(), rawText, null, null,
+                    null, new TodoDetail(t.title(), utc(t.dueAt()), false), null);
+            case ParsedCapture.Link l -> new CaptureResponse(null, l.type(), rawText, null, null,
+                    null, null, new LinkDetail(l.url(), l.note(), null));
+        };
     }
 
     private static CaptureResponse base(Capture capture) {

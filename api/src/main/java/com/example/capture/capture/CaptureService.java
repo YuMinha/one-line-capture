@@ -23,6 +23,12 @@ public class CaptureService {
     private final CaptureParser captureParser;
     private final EntityManager entityManager;
 
+    // 저장하지 않는다. 파서를 고칠 때 결과만 빠르게 확인하는 용도 (stack.md §3.1)
+    public CaptureResponse preview(String text) {
+        String rawText = text.trim();
+        return CaptureResponse.preview(rawText, captureParser.parse(rawText));
+    }
+
     @Transactional
     public CaptureResponse create(String text) {
         String rawText = text.trim();

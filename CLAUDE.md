@@ -122,5 +122,5 @@ curl -X POST localhost:8080/api/v1/captures \
 
 > 태스크를 끝낼 때마다 이 줄을 갱신한다.
 
-**진행 중:** T2.7 (POST /captures/preview + 파서 테스트 채우기)
-**완료:** T1.1 ~ T1.8 (1주차), T2.1 ~ T2.6
+**진행 중:** T2.8 (GET /captures 타입 필터 + 커서 페이징)
+**완료:** T1.1 ~ T1.8 (1주차), T2.1 ~ T2.7

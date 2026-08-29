@@ -180,4 +180,34 @@ class CaptureApiTest {
         assertThat(todoRepository.findById(id)).isEmpty();
         assertThat(linkRepository.findById(id)).isEmpty();
     }
+
+    @Test
+    @DisplayName("preview는 파싱 결과만 주고 아무것도 저장하지 않는다")
+    void preview는_저장하지_않는다() throws Exception {
+        mockMvc.perform(post("/api/v1/captures/preview")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body("점심 9000원")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.type").value("EXPENSE"))
+                .andExpect(jsonPath("$.rawText").value("점심 9000원"))
+                .andExpect(jsonPath("$.expense.amount").value(9000))
+                .andExpect(jsonPath("$.expense.merchant").value("점심"))
+                // 저장 전이라 id/source/createdAt이 없다
+                .andExpect(jsonPath("$.id").doesNotExist())
+                .andExpect(jsonPath("$.source").doesNotExist())
+                .andExpect(jsonPath("$.createdAt").doesNotExist());
+
+        assertThat(captureRepository.count()).isZero();
+        assertThat(expenseRepository.count()).isZero();
+    }
+
+    @Test
+    @DisplayName("preview도 같은 검증을 받는다")
+    void preview_검증() throws Exception {
+        mockMvc.perform(post("/api/v1/captures/preview")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body("   ")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("TEXT_REQUIRED"));
+    }
 }

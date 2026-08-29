@@ -21,4 +21,10 @@ public class CaptureController {
     public CaptureResponse create(@Valid @RequestBody CaptureCreateRequest request) {
         return captureService.create(request.text());
     }
+
+    // 아무것도 만들지 않으므로 201이 아니라 200이다
+    @PostMapping("/preview")
+    public CaptureResponse preview(@Valid @RequestBody CaptureCreateRequest request) {
+        return captureService.preview(request.text());
+    }
 }
