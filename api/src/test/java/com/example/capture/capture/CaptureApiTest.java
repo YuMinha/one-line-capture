@@ -35,6 +35,12 @@ class CaptureApiTest {
     @Autowired
     private TodoRepository todoRepository;
 
+    @Autowired
+    private ExpenseRepository expenseRepository;
+
+    @Autowired
+    private LinkRepository linkRepository;
+
     private String body(String text) {
         return "{\"text\":\"" + text + "\"}";
     }
@@ -113,5 +119,65 @@ class CaptureApiTest {
         Capture saved = captureRepository.findAll().get(0);
         assertThat(saved.getRawText()).hasSize(500);
         assertThat(todoRepository.findById(saved.getId()).orElseThrow().getTitle()).hasSize(200);
+    }
+
+    @Test
+    @DisplayName("2주차 데모: 세 예시 입력이 각각 다른 타입으로 저장된다")
+    void 세_예시_분류() throws Exception {
+        mockMvc.perform(post("/api/v1/captures")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body("점심 9000원")))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.type").value("EXPENSE"))
+                .andExpect(jsonPath("$.expense.amount").value(9000))
+                .andExpect(jsonPath("$.expense.merchant").value("점심"))
+                .andExpect(jsonPath("$.expense.spentAt").isNotEmpty())
+                .andExpect(jsonPath("$.todo").doesNotExist())
+                .andExpect(jsonPath("$.link").doesNotExist());
+
+        mockMvc.perform(post("/api/v1/captures")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body("내일 3시 과제 제출")))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.type").value("TODO"))
+                .andExpect(jsonPath("$.todo.title").value("과제 제출"))
+                .andExpect(jsonPath("$.todo.dueAt").isNotEmpty())
+                .andExpect(jsonPath("$.expense").doesNotExist());
+
+        mockMvc.perform(post("/api/v1/captures")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body("https://example.com 스프링 정리글")))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.type").value("LINK"))
+                .andExpect(jsonPath("$.link.url").value("https://example.com"))
+                .andExpect(jsonPath("$.link.note").value("스프링 정리글"))
+                .andExpect(jsonPath("$.todo").doesNotExist());
+
+        assertThat(captureRepository.count()).isEqualTo(3);
+    }
+
+    @Test
+    @DisplayName("아무 룰에도 안 걸리면 마감 없는 할일로 떨어진다")
+    void fallback은_TODO() throws Exception {
+        mockMvc.perform(post("/api/v1/captures")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body("우산 챙기기")))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.type").value("TODO"))
+                .andExpect(jsonPath("$.todo.dueAt").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("상세 행은 타입에 맞는 테이블에만 생긴다")
+    void 상세는_한_테이블에만() throws Exception {
+        mockMvc.perform(post("/api/v1/captures")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body("스벅 5,500원")))
+                .andExpect(status().isCreated());
+
+        Long id = captureRepository.findAll().get(0).getId();
+        assertThat(expenseRepository.findById(id)).isPresent();
+        assertThat(todoRepository.findById(id)).isEmpty();
+        assertThat(linkRepository.findById(id)).isEmpty();
     }
 }

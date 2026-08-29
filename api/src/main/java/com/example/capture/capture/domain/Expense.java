@@ -37,10 +37,14 @@ public class Expense {
 
     protected Expense() {}
 
+    // merchant는 100자, raw_text는 500자다. Todo.title과 같은 이유로 여기서 자른다
+    private static final int MERCHANT_MAX = 100;
+
     public Expense(Capture capture, BigDecimal amount, String merchant, LocalDate spentAt) {
         this.capture = capture;
         this.amount = amount;
-        this.merchant = merchant;
+        this.merchant = merchant != null && merchant.length() > MERCHANT_MAX
+                ? merchant.substring(0, MERCHANT_MAX) : merchant;
         this.spentAt = spentAt;
     }
 }
