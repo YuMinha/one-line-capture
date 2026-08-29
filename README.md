@@ -28,6 +28,8 @@ cp .env.example .env
 docker compose up -d --build
 ```
 
+DB와 API가 준비될 때까지 기다렸다가 돌아온다. 처음 한 번은 이미지를 받고 빌드하느라 몇 분 걸린다.
+
 브라우저에서 **http://localhost:8081** 을 열고, `.env`에 넣은 `API_TOKEN` 값을 입력하면 된다.
 
 정상인지 확인:

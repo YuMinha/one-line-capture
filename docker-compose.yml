@@ -46,12 +46,20 @@ services:
         condition: service_healthy
     ports:
       - "${API_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/api/v1/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 40s
 
   web:
     build: ./web
     restart: unless-stopped
     depends_on:
-      - api
+      # api가 응답할 때까지 기다린다. 안 그러면 compose up 직후 nginx가 502를 준다
+      api:
+        condition: service_healthy
     ports:
       - "${WEB_PORT:-8081}:80"
 

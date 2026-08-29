@@ -11,6 +11,9 @@ FROM eclipse-temurin:21-jre
 WORKDIR /app
 # 컨테이너 안 JVM도 UTC. 서버 로컬 시각이 끼어들면 월별 요약이 틀어진다 (stack.md §2.2)
 ENV TZ=UTC
+# compose healthcheck가 쓴다. 이게 없으면 web이 api가 준비됐는지 알 수 없어
+# 기동 직후 502가 뜬다
+RUN apt-get update  && apt-get install -y --no-install-recommends curl  && rm -rf /var/lib/apt/lists/*
 RUN useradd --system --uid 1001 app
 USER app
 COPY --from=build /app/build/libs/*.jar app.jar
