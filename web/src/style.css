@@ -1,25 +1,60 @@
 :root {
   font-family: system-ui, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
   color-scheme: light dark;
+  --line: #8884;
 }
 
 body {
   margin: 0;
-  padding: 2rem 1rem;
+  padding: 1.5rem 1rem 4rem;
   display: flex;
   justify-content: center;
 }
 
-#app {
+#app { width: 100%; max-width: 32rem; }
+
+h1 { font-size: 1.1rem; font-weight: 600; margin: 0 0 1rem; opacity: 0.7; }
+
+#input {
   width: 100%;
-  max-width: 40rem;
+  box-sizing: border-box;
+  padding: 0.9rem 1rem;
+  font-size: 1.05rem;
+  font-family: inherit;
+  border: 1px solid var(--line);
+  border-radius: 0.6rem;
+  background: transparent;
+  color: inherit;
 }
 
-.status {
-  padding: 0.75rem 1rem;
-  border-radius: 0.5rem;
-  background: #8883;
-}
+#input:focus { outline: 2px solid #4a7dff; outline-offset: 1px; }
 
+.status { min-height: 1.2rem; margin: 0.6rem 0.2rem; font-size: 0.85rem; opacity: 0.75; }
 .status.ok { color: #0a7d32; }
 .status.fail { color: #b3261e; }
+
+.items { list-style: none; margin: 0.5rem 0 0; padding: 0; display: grid; gap: 0.5rem; }
+
+.item {
+  display: flex;
+  gap: 0.75rem;
+  align-items: baseline;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 0.6rem;
+}
+
+.item strong { display: block; font-weight: 600; }
+.item small { display: block; opacity: 0.6; font-size: 0.8rem; margin-top: 0.15rem; }
+
+.badge {
+  flex: none;
+  font-size: 0.7rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 0.3rem;
+  background: #8882;
+}
+
+.item.expense .badge { background: #f0a5; }
+.item.todo    .badge { background: #7af5; }
+.item.link    .badge { background: #af75; }
