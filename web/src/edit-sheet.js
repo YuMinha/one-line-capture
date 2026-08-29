@@ -1,9 +1,7 @@
 import { api, ApiError } from './api.js'
+import { escapeHtml as escape } from './escape-html.js'
 import { toastError } from './toast.js'
 import { FORMS, TYPES } from './edit-form.js'
-
-const escape = (value) => String(value ?? '').replace(/[&<>"]/g, (c) =>
-  ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
 
 export function openEditSheet(id, { onChanged } = {}) {
   const dialog = document.createElement('dialog')
