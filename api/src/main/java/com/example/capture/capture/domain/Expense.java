@@ -43,8 +43,18 @@ public class Expense {
     public Expense(Capture capture, BigDecimal amount, String merchant, LocalDate spentAt) {
         this.capture = capture;
         this.amount = amount;
-        this.merchant = merchant != null && merchant.length() > MERCHANT_MAX
-                ? merchant.substring(0, MERCHANT_MAX) : merchant;
+        this.merchant = trim(merchant);
         this.spentAt = spentAt;
+    }
+
+    public void update(BigDecimal amount, String merchant, LocalDate spentAt) {
+        this.amount = amount;
+        this.merchant = trim(merchant);
+        this.spentAt = spentAt;
+    }
+
+    private static String trim(String merchant) {
+        return merchant != null && merchant.length() > MERCHANT_MAX
+                ? merchant.substring(0, MERCHANT_MAX) : merchant;
     }
 }

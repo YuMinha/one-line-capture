@@ -42,6 +42,15 @@ public class Link {
     public Link(Capture capture, String url, String note) {
         this.capture = capture;
         this.url = url;
-        this.note = note != null && note.length() > NOTE_MAX ? note.substring(0, NOTE_MAX) : note;
+        this.note = trim(note);
+    }
+
+    public void update(String url, String note) {
+        this.url = url;
+        this.note = trim(note);
+    }
+
+    private static String trim(String note) {
+        return note != null && note.length() > NOTE_MAX ? note.substring(0, NOTE_MAX) : note;
     }
 }

@@ -46,4 +46,11 @@ public class Capture {
         this.type = type;
         this.source = source;
     }
+
+    // rawText는 절대 바뀌지 않는다. 파서를 고친 뒤 과거 데이터를 다시 파싱해볼 수 있어야 한다
+    // (stack.md §2.2). 사용자가 손댔다는 사실은 source에 남는다 (§3.4)
+    public void reclassify(CaptureType type) {
+        this.type = type;
+        this.source = CaptureSource.MANUAL;
+    }
 }

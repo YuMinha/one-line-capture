@@ -17,6 +17,8 @@ services:
       - "${MYSQL_PORT:-3306}:3306"
     volumes:
       - db-data:/var/lib/mysql
+      # 볼륨이 처음 만들어질 때 한 번만 실행된다 (테스트용 DB 생성)
+      - ./db/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       # -h 127.0.0.1로 TCP를 강제한다. 초기화 중 임시 서버는 소켓만 열려 있어서
       # 소켓으로 ping하면 아직 준비 안 됐는데도 성공으로 잡힌다

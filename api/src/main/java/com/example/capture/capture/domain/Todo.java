@@ -45,7 +45,16 @@ public class Todo {
 
     public Todo(Capture capture, String title, LocalDateTime dueAt) {
         this.capture = capture;
-        this.title = title.length() > TITLE_MAX ? title.substring(0, TITLE_MAX) : title;
+        this.title = trim(title);
         this.dueAt = dueAt;
+    }
+
+    public void update(String title, LocalDateTime dueAt) {
+        this.title = trim(title);
+        this.dueAt = dueAt;
+    }
+
+    private static String trim(String title) {
+        return title.length() > TITLE_MAX ? title.substring(0, TITLE_MAX) : title;
     }
 }
