@@ -194,6 +194,47 @@ one-line-capture/
 
 ---
 
+## 백업과 복원
+
+```bash
+./scripts/backup.sh          # backups/capture-<시각>.sql.gz 로 저장
+```
+
+`--single-transaction` 이라 **백업 중에도 앱이 계속 돈다.** 비밀번호는 호스트 명령줄에
+올리지 않고 db 컨테이너가 가진 환경변수를 그대로 쓴다(`ps`에 안 보인다).
+빈 파일이나 깨진 gzip이면 즉시 실패한다 — 정작 필요할 때 알게 되면 늦다.
+기본으로 최근 14개만 남긴다(`KEEP=30 ./scripts/backup.sh` 로 조절).
+
+매일 새벽 4시에 자동 백업:
+
+```bash
+crontab -e
+0 4 * * * cd /home/you/one-line-capture && ./scripts/backup.sh >> backups/backup.log 2>&1
+```
+
+복원 — **덮어쓰기 전에 지금 것을 먼저 백업하라.**
+
+```bash
+./scripts/backup.sh                    # 되돌릴 지점을 먼저 만든다
+
+gzip -dc backups/capture-<시각>.sql.gz   | docker compose exec -T db sh -c 'MYSQL_PWD="$MYSQL_PASSWORD" exec mysql -u"$MYSQL_USER" "$MYSQL_DATABASE"'
+
+docker compose restart api
+```
+
+덤프에는 `flyway_schema_history`도 들어 있어서, 복원한 DB에 Flyway가 마이그레이션을
+다시 돌리지 않는다.
+
+> 복원해본 적 없는 백업은 백업이 아니다. 다른 스키마에 한 번 복원해서 행 수를 대조해보라.
+
+## 재시작
+
+세 컨테이너 모두 `restart: unless-stopped` 다. 서버가 재부팅되거나 앱이 죽으면 자동으로
+다시 뜬다. 단 `docker compose stop` 으로 직접 멈춘 것은 다시 켜지 않는다 — 그게
+`always` 가 아니라 `unless-stopped` 인 이유다.
+
+---
+
 ## 아직 없는 것
 
 [`docs/spec.md`](docs/spec.md) §5·§6에 "왜 안 만드는가"까지 적어뒀다.
