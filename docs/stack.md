@@ -520,7 +520,7 @@ API_TOKEN=change-me-to-a-long-random-string
 TZ=UTC
 
 # --- Web ---
-VITE_API_BASE_URL=http://localhost:8080/api/v1
+VITE_API_BASE_URL=/api/v1
 
 # --- 배포 시에만 ---
 DOMAIN=capture.example.com
@@ -532,6 +532,12 @@ DOMAIN=capture.example.com
 > 서버 쪽에서 알아서 utf8mb4로 매핑하므로 **그냥 빼는 게 맞다.** utf8mb4는 DB/테이블 설정으로
 > 보장한다(§2.1 DDL, compose의 `--character-set-server`). `serverTimezone`도 8.0.23부터
 > deprecated라 후속인 `connectionTimeZone`을 쓴다.
+
+> **왜 절대 URL이 아니라 상대경로인가:** 절대 URL(`http://localhost:8080/...`)로 두면
+> 개발 중 프론트(5173)와 API(8080)의 출처가 달라져 **서버에 CORS를 열어야 한다.**
+> 대신 Vite dev 서버의 프록시로 `/api`를 API로 넘기면 개발에서도 같은 출처가 되고,
+> 배포에서 Caddy가 하는 일(`/api/*` → api 컨테이너)과 모양이 같아진다.
+> CORS 설정 코드가 아예 필요 없어지므로 `common/config/WebConfig`도 v1에는 없다.
 
 **API 주소를 환경변수로 빼는 게 왜 중요한가:** 프론트 코드에 `http://localhost:8080`이 박혀 있으면
 배포하는 순간 전부 찾아 고쳐야 하고, 반드시 하나를 빠뜨린다. `VITE_API_BASE_URL` 하나로
