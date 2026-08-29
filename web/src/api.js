@@ -57,6 +57,8 @@ export const api = {
 
   preview: (text) => request('/captures/preview', json({ text })),
 
+  expenseSummary: (month) => request(`/summary/expenses${month ? `?month=${month}` : ''}`),
+
   list: ({ type, cursor, size, done } = {}) => {
     const params = new URLSearchParams()
     if (type) params.set('type', type)

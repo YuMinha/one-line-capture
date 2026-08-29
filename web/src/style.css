@@ -166,3 +166,33 @@ h1 { font-size: 1.1rem; font-weight: 600; margin: 0; opacity: 0.7; }
 .toggle { margin-left: auto; align-self: center; width: 1.15rem; height: 1.15rem; cursor: pointer; }
 .item.done strong { text-decoration: line-through; opacity: 0.5; }
 .item.done small { opacity: 0.35; }
+
+.month-nav { display: flex; align-items: center; gap: 0.8rem; margin-bottom: 1rem; }
+.month-nav button {
+  font: inherit;
+  font-size: 1.1rem;
+  line-height: 1;
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid var(--line);
+  border-radius: 0.4rem;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.month-nav strong { font-size: 1rem; }
+
+.totals { display: flex; gap: 0.6rem; margin-bottom: 0.5rem; }
+.totals div {
+  flex: 1;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 0.6rem;
+}
+.totals span { display: block; font-size: 0.75rem; opacity: 0.55; margin-bottom: 0.2rem; }
+.totals strong { font-size: 1.15rem; }
+
+.daily { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.daily th, .daily td { padding: 0.5rem 0.6rem; border-bottom: 1px solid var(--line); }
+.daily th { font-size: 0.75rem; opacity: 0.55; font-weight: 500; text-align: left; }
+.daily th:not(:first-child), .daily .num { text-align: right; }

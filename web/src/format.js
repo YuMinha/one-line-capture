@@ -60,3 +60,29 @@ export function fromKstInput(value) {
   if (!value) return null
   return new Date(`${value}:00+09:00`).toISOString()
 }
+
+export function formatWon(amount) {
+  return `${won.format(amount)}원`
+}
+
+// "2026-08" 을 n개월 앞뒤로 옮긴다. Date를 쓰면 말일 보정에 걸리므로 숫자로 센다
+export function shiftMonth(month, delta) {
+  const [year, m] = month.split('-').map(Number)
+  const total = year * 12 + (m - 1) + delta
+  return `${Math.floor(total / 12)}-${String((total % 12) + 1).padStart(2, '0')}`
+}
+
+export function monthLabel(month) {
+  const [year, m] = month.split('-')
+  return `${year}년 ${Number(m)}월`
+}
+
+// 지출일도 KST 기준이므로 이번 달을 KST로 센다
+export function currentMonth(now = new Date()) {
+  return now.toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' }).slice(0, 7)
+}
+
+export function dayLabel(isoDate) {
+  const [, month, day] = isoDate.split('-')
+  return `${Number(month)}/${Number(day)}`
+}

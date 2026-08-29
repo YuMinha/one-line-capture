@@ -1,4 +1,4 @@
-import { describe as describeItem, fromKstInput, toKst, toKstInput, typeLabel } from '../src/format.js'
+import { currentMonth, dayLabel, describe as describeItem, formatWon, fromKstInput, monthLabel, shiftMonth, toKst, toKstInput, typeLabel } from '../src/format.js'
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 
@@ -61,4 +61,30 @@ test('datetime-local 값은 KST로 해석해 UTC로 되돌린다', () => {
 test('KST 변환은 왕복해도 값이 유지된다', () => {
   const iso = '2026-08-31T06:00:00.000Z'
   assert.equal(fromKstInput(toKstInput(iso)), iso)
+})
+
+test('월 이동은 연 경계를 넘는다', () => {
+  assert.equal(shiftMonth('2026-08', 1), '2026-09')
+  assert.equal(shiftMonth('2026-12', 1), '2027-01')
+  assert.equal(shiftMonth('2026-01', -1), '2025-12')
+  assert.equal(shiftMonth('2026-03', -14), '2025-01')
+})
+
+test('말일이 있는 달에서도 월 이동이 안전하다', () => {
+  // Date로 계산하면 1월 31일 + 1개월 = 3월 3일이 되는 함정이 있다
+  assert.equal(shiftMonth('2026-01', 1), '2026-02')
+})
+
+test('월 라벨과 일 라벨은 0을 떼고 보여준다', () => {
+  assert.equal(monthLabel('2026-08'), '2026년 8월')
+  assert.equal(dayLabel('2026-08-05'), '8/5')
+})
+
+test('이번 달은 KST 기준이다', () => {
+  // UTC로는 아직 7월 31일, KST로는 8월 1일
+  assert.equal(currentMonth(new Date('2026-07-31T16:00:00Z')), '2026-08')
+})
+
+test('금액은 천단위 콤마와 원을 붙인다', () => {
+  assert.equal(formatWon(412500), '412,500원')
 })
