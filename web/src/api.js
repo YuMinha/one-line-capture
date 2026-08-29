@@ -50,6 +50,11 @@ export const api = {
 
   remove: (id) => request(`/captures/${id}`, { method: 'DELETE' }),
 
+  // 뒤집기가 아니라 원하는 값을 보낸다. 재시도해도 결과가 같다
+  setDone: (id, value) => request(`/todos/${id}`, { method: 'PATCH', body: JSON.stringify({ value }) }),
+
+  setRead: (id, value) => request(`/links/${id}`, { method: 'PATCH', body: JSON.stringify({ value }) }),
+
   preview: (text) => request('/captures/preview', json({ text })),
 
   list: ({ type, cursor, size, done } = {}) => {

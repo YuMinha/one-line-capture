@@ -50,6 +50,10 @@ public class Link {
         this.note = trim(note);
     }
 
+    public void changeRead(boolean read, LocalDateTime now) {
+        this.readAt = read ? now : null;
+    }
+
     private static String trim(String note) {
         return note != null && note.length() > NOTE_MAX ? note.substring(0, NOTE_MAX) : note;
     }

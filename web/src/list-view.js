@@ -33,12 +33,25 @@ export function renderList(app) {
     if (!pager.hasNext || pager.loading) return
     try {
       const items = await pager.next()
-      list.append(...items.map(itemElement))
+      list.append(...items.map((item) => itemElement(item, { onToggle })))
       status.className = 'status'
       status.textContent = pager.hasNext ? '' : (list.children.length ? '' : '아직 아무것도 없습니다')
     } catch (error) {
       status.className = 'status fail'
       status.textContent = error instanceof ApiError ? error.message : '불러오지 못했습니다'
+    }
+  }
+
+  async function onToggle(item, checked, box) {
+    // 먼저 화면을 바꾸고 실패하면 되돌린다. 체크는 즉시 반응해야 한다
+    box.closest('.item').classList.toggle('done', checked)
+    try {
+      await (item.todo ? api.setDone(item.id, checked) : api.setRead(item.id, checked))
+    } catch (error) {
+      box.checked = !checked
+      box.closest('.item').classList.toggle('done', !checked)
+      status.className = 'status fail'
+      status.textContent = error instanceof ApiError ? error.message : '반영하지 못했습니다'
     }
   }
 

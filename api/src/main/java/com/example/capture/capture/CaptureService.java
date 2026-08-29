@@ -10,6 +10,8 @@ import com.example.capture.parser.CaptureParser;
 import com.example.capture.common.ApiException;
 import com.example.capture.parser.ParsedCapture;
 import jakarta.persistence.EntityManager;
+import java.time.Clock;
+import java.time.Instant;
 import lombok.RequiredArgsConstructor;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -29,6 +31,7 @@ public class CaptureService {
     private final LinkRepository linkRepository;
     private final CaptureParser captureParser;
     private final EntityManager entityManager;
+    private final Clock clock;
 
     private static final int MAX_SIZE = 50;
 
@@ -125,6 +128,28 @@ public class CaptureService {
                                 new Link(capture, detail.url(), detail.note()))));
             }
         };
+    }
+
+    @Transactional
+    public CaptureResponse changeDone(Long captureId, boolean done) {
+        Todo todo = todoRepository.findById(captureId)
+                .orElseThrow(() -> ApiException.notFound("TODO_NOT_FOUND", "없는 할일입니다"));
+        todo.changeDone(done, nowUtc());
+        return CaptureResponse.of(todo.getCapture(), todo);
+    }
+
+    @Transactional
+    public CaptureResponse changeRead(Long captureId, boolean read) {
+        Link link = linkRepository.findById(captureId)
+                .orElseThrow(() -> ApiException.notFound("LINK_NOT_FOUND", "없는 링크입니다"));
+        link.changeRead(read, nowUtc());
+        return CaptureResponse.of(link.getCapture(), link);
+    }
+
+    // Clock은 Asia/Seoul이라 LocalDateTime.now(clock)을 그대로 쓰면 KST 벽시계가 저장된다.
+    // 기록 시각은 파싱과 달리 순간(Instant)이므로 UTC로 내려 저장한다 (stack.md §2.2)
+    private LocalDateTime nowUtc() {
+        return LocalDateTime.ofInstant(Instant.now(clock), ZoneOffset.UTC);
     }
 
     @Transactional

@@ -54,6 +54,12 @@ public class Todo {
         this.dueAt = dueAt;
     }
 
+    // 완료 체크는 분류 수정이 아니다. capture.source는 건드리지 않는다
+    public void changeDone(boolean done, LocalDateTime now) {
+        this.done = done;
+        this.doneAt = done ? now : null;
+    }
+
     private static String trim(String title) {
         return title.length() > TITLE_MAX ? title.substring(0, TITLE_MAX) : title;
     }

@@ -162,3 +162,7 @@ h1 { font-size: 1.1rem; font-weight: 600; margin: 0; opacity: 0.7; }
 }
 .sheet-actions .primary { margin-left: auto; background: #4a7dff; border-color: #4a7dff; color: #fff; }
 .sheet-actions .danger { color: #b3261e; border-color: #b3261e55; }
+
+.toggle { margin-left: auto; align-self: center; width: 1.15rem; height: 1.15rem; cursor: pointer; }
+.item.done strong { text-decoration: line-through; opacity: 0.5; }
+.item.done small { opacity: 0.35; }
