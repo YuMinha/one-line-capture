@@ -1,4 +1,5 @@
-import { api, ApiError } from './api.js'
+import { api } from './api.js'
+import { toastError } from './toast.js'
 import { createPager } from './pager.js'
 import { itemElement } from './item.js'
 import { openEditSheet } from './edit-sheet.js'
@@ -37,8 +38,7 @@ export function renderList(app) {
       status.className = 'status'
       status.textContent = pager.hasNext ? '' : (list.children.length ? '' : '아직 아무것도 없습니다')
     } catch (error) {
-      status.className = 'status fail'
-      status.textContent = error instanceof ApiError ? error.message : '불러오지 못했습니다'
+      toastError(error, '목록을 불러오지 못했습니다')
     }
   }
 
@@ -50,8 +50,7 @@ export function renderList(app) {
     } catch (error) {
       box.checked = !checked
       box.closest('.item').classList.toggle('done', !checked)
-      status.className = 'status fail'
-      status.textContent = error instanceof ApiError ? error.message : '반영하지 못했습니다'
+      toastError(error, '반영하지 못했습니다')
     }
   }
 

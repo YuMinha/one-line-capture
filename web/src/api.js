@@ -1,6 +1,8 @@
 // 기본값이 상대경로인 게 중요하다. 개발에서는 Vite 프록시가, 배포에서는 Caddy가
 // 같은 출처로 넘겨주므로 CORS가 필요 없다 (stack.md §6)
-const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api/v1'
+import { describeHttpError } from './http-error.js'
+
+const BASE_URL = import.meta.env?.VITE_API_BASE_URL ?? '/api/v1'
 
 export class ApiError extends Error {
   constructor(status, code, message) {
@@ -20,7 +22,8 @@ async function request(path, options = {}) {
     })
   } catch {
     // fetch는 네트워크가 끊겼을 때만 reject한다. 404나 500은 여기로 안 온다
-    throw new ApiError(0, 'NETWORK', '서버에 연결할 수 없습니다')
+    const { code, message } = describeHttpError(0, null)
+    throw new ApiError(0, code, message)
   }
 
   if (response.status === 204) return null
@@ -28,11 +31,8 @@ async function request(path, options = {}) {
   const body = await response.json().catch(() => null)
 
   if (!response.ok) {
-    throw new ApiError(
-      response.status,
-      body?.error?.code ?? 'UNKNOWN',
-      body?.error?.message ?? '알 수 없는 오류가 발생했습니다',
-    )
+    const { code, message } = describeHttpError(response.status, body)
+    throw new ApiError(response.status, code, message)
   }
   return body
 }

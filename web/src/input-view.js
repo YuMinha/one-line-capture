@@ -1,6 +1,7 @@
-import { api, ApiError } from './api.js'
+import { api } from './api.js'
 import { itemElement } from './item.js'
 import { typeLabel } from './format.js'
+import { toastError } from './toast.js'
 
 const RECENT_LIMIT = 3
 
@@ -40,7 +41,8 @@ export function renderInput(app) {
     } catch (error) {
       // 사용자가 친 글자를 잃지 않는 게 어떤 에러 메시지보다 중요하다
       input.value = text
-      setStatus(error instanceof ApiError ? error.message : '저장하지 못했습니다', 'fail')
+      setStatus('저장하지 못했습니다. 입력은 그대로 두었습니다.', 'fail')
+      toastError(error, '저장하지 못했습니다')
     } finally {
       input.focus()
     }
@@ -54,5 +56,5 @@ export function renderInput(app) {
 
   api.list({ size: RECENT_LIMIT })
       .then((page) => { recent = page.items; renderRecent() })
-      .catch(() => setStatus('서버에 연결할 수 없습니다', 'fail'))
+      .catch((error) => toastError(error, '최근 기록을 불러오지 못했습니다'))
 }

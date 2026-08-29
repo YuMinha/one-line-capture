@@ -1,4 +1,5 @@
-import { api, ApiError } from './api.js'
+import { api } from './api.js'
+import { toastError } from './toast.js'
 import { currentMonth, dayLabel, formatWon, monthLabel, shiftMonth } from './format.js'
 
 export function renderSummary(app) {
@@ -52,7 +53,8 @@ export function renderSummary(app) {
       status.textContent = summary.count ? '' : '이 달에는 지출 기록이 없습니다'
     } catch (error) {
       status.className = 'status fail'
-      status.textContent = error instanceof ApiError ? error.message : '불러오지 못했습니다'
+      status.textContent = '불러오지 못했습니다'
+      toastError(error, '요약을 불러오지 못했습니다')
     }
   }
 

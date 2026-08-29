@@ -1,4 +1,5 @@
 import { api, ApiError } from './api.js'
+import { toastError } from './toast.js'
 import { FORMS, TYPES } from './edit-form.js'
 
 const escape = (value) => String(value ?? '').replace(/[&<>"]/g, (c) =>
@@ -57,7 +58,8 @@ export function openEditSheet(id, { onChanged } = {}) {
         onChanged?.()
         close()
       } catch (error) {
-        renderError(error instanceof ApiError ? error.message : '삭제하지 못했습니다')
+        renderError('삭제하지 못했습니다')
+        toastError(error, '삭제하지 못했습니다')
       }
     })
 
@@ -70,6 +72,7 @@ export function openEditSheet(id, { onChanged } = {}) {
         close()
       } catch (error) {
         renderError(error instanceof ApiError ? error.message : '저장하지 못했습니다')
+        toastError(error, '저장하지 못했습니다')
       }
     })
   }
