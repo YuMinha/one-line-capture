@@ -63,5 +63,27 @@ services:
     ports:
       - "${WEB_PORT:-8081}:80"
 
+  # 배포할 때만 쓴다: docker compose --profile deploy up -d
+  # 로컬에서는 web(8081)으로 바로 붙으므로 이 서비스가 뜨지 않는다
+  caddy:
+    image: caddy:2-alpine
+    profiles: ["deploy"]
+    restart: unless-stopped
+    depends_on:
+      - web
+      - api
+    environment:
+      DOMAIN: ${DOMAIN}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # 인증서를 잃으면 재발급 한도에 걸린다. 반드시 볼륨에 남긴다
+      - caddy-data:/data
+      - caddy-config:/config
+
 volumes:
+  caddy-data:
+  caddy-config:
   db-data:

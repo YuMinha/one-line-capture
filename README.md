@@ -227,6 +227,33 @@ docker compose restart api
 
 > 복원해본 적 없는 백업은 백업이 아니다. 다른 스키마에 한 번 복원해서 행 수를 대조해보라.
 
+## 배포 (VPS)
+
+로컬은 `web` 컨테이너(8081)로 바로 붙지만, 서버에서는 그 앞에 Caddy를 세워
+**도메인 하나로 프론트와 API를 같이** 서비스하고 HTTPS를 자동으로 받는다.
+
+```bash
+# 서버에서
+git clone https://github.com/YuMinha/one-line-capture.git
+cd one-line-capture
+cp .env.example .env
+# .env에서 비밀값 3개와 DOMAIN을 채운다. DNS A 레코드가 이 서버를 가리켜야 한다
+
+docker compose --profile deploy up -d --build
+```
+
+`--profile deploy` 를 줘야 Caddy가 함께 뜬다. 인증서는 Caddy가 Let's Encrypt에서
+알아서 받고 갱신한다 — 설정 파일에 인증서 이야기가 없는 게 정상이다.
+
+방화벽은 **22 / 80 / 443만** 열면 된다. `WEB_PORT`·`API_PORT`·`MYSQL_PORT`는 호스트에
+바인딩되므로, 서버에서는 이 포트들을 방화벽에서 막아 두는 편이 안전하다.
+
+> 인증서는 `caddy-data` 볼륨에 쌓인다. 이 볼륨을 날리면 재발급 한도(주당 5회)에 걸릴 수 있다.
+> `docker compose down -v` 는 서버에서 절대 쓰지 말 것.
+
+**도메인 없이 먼저 띄우려면** `--profile deploy` 없이 올리고 `http://서버IP:8081` 로 접속하면 된다.
+HTTPS는 나중에 붙여도 앱은 그대로 동작한다.
+
 ## 재시작
 
 세 컨테이너 모두 `restart: unless-stopped` 다. 서버가 재부팅되거나 앱이 죽으면 자동으로
