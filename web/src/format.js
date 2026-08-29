@@ -43,3 +43,20 @@ export function describe(item) {
   // 타입이 섞인 전체 조회는 상세 없이 요약만 온다 (stack.md §2.5)
   return { main: item.rawText, sub: '' }
 }
+
+// datetime-local 입력은 타임존이 없는 벽시계 문자열이다. 브라우저 로컬 시각이 아니라
+// 항상 KST로 해석한다 — 화면 표시(toKst)와 기준이 달라지면 사용자가 혼란스럽다.
+// KST는 서머타임이 없어 고정 +09:00이라 이 계산이 안전하다
+export function toKstInput(isoUtc) {
+  if (!isoUtc) return ''
+  // sv-SE 로케일은 'YYYY-MM-DD HH:mm:ss' 형태를 준다
+  return new Date(isoUtc)
+      .toLocaleString('sv-SE', { timeZone: 'Asia/Seoul' })
+      .replace(' ', 'T')
+      .slice(0, 16)
+}
+
+export function fromKstInput(value) {
+  if (!value) return null
+  return new Date(`${value}:00+09:00`).toISOString()
+}

@@ -60,6 +60,23 @@ public class CaptureService {
         };
     }
 
+    @Transactional(readOnly = true)
+    public CaptureResponse get(Long id) {
+        Capture capture = captureRepository.findById(id)
+                .orElseThrow(() -> ApiException.notFound("CAPTURE_NOT_FOUND", "없는 캡처입니다"));
+
+        return switch (capture.getType()) {
+            case EXPENSE -> CaptureResponse.of(capture, expenseRepository.findById(id).orElseThrow(this::detailMissing));
+            case TODO -> CaptureResponse.of(capture, todoRepository.findById(id).orElseThrow(this::detailMissing));
+            case LINK -> CaptureResponse.of(capture, linkRepository.findById(id).orElseThrow(this::detailMissing));
+        };
+    }
+
+    // capture는 있는데 상세가 없으면 데이터가 깨진 것이다. 조용히 넘기지 않는다
+    private ApiException detailMissing() {
+        return ApiException.notFound("DETAIL_NOT_FOUND", "상세를 찾을 수 없습니다");
+    }
+
     @Transactional
     public CaptureResponse update(Long id, CaptureUpdateRequest request) {
         Capture capture = captureRepository.findById(id)

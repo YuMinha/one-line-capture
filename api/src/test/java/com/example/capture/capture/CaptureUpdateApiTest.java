@@ -2,6 +2,7 @@ package com.example.capture.capture;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -185,5 +186,26 @@ class CaptureUpdateApiTest {
     void 없는것_삭제() throws Exception {
         mockMvc.perform(delete("/api/v1/captures/999999"))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("단건 조회는 타입에 맞는 상세를 함께 준다")
+    void 단건_조회() throws Exception {
+        long id = save("점심 9000원");
+
+        mockMvc.perform(get("/api/v1/captures/" + id))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value((int) id))
+                .andExpect(jsonPath("$.type").value("EXPENSE"))
+                .andExpect(jsonPath("$.expense.amount").value(9000))
+                .andExpect(jsonPath("$.todo").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("없는 단건은 404")
+    void 없는_단건() throws Exception {
+        mockMvc.perform(get("/api/v1/captures/999999"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("CAPTURE_NOT_FOUND"));
     }
 }

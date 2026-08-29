@@ -96,3 +96,69 @@ h1 { font-size: 1.1rem; font-weight: 600; margin: 0; opacity: 0.7; }
 .item.expense .badge { background: #f0a5; }
 .item.todo    .badge { background: #7af5; }
 .item.link    .badge { background: #af75; }
+
+.item { cursor: pointer; }
+.item:hover { border-color: #4a7dff88; }
+
+/* 네이티브 dialog를 쓴다. Esc 닫기, 포커스 트랩, 백드롭이 공짜다 */
+.sheet {
+  width: min(28rem, calc(100vw - 2rem));
+  border: 1px solid var(--line);
+  border-radius: 0.8rem;
+  padding: 1.1rem;
+  background: Canvas;
+  color: inherit;
+}
+
+.sheet::backdrop { background: #0006; }
+
+.sheet .raw {
+  margin: 0 0 0.9rem;
+  font-size: 0.85rem;
+  opacity: 0.6;
+  overflow-wrap: anywhere;
+}
+
+.type-picker { display: flex; gap: 0.4rem; margin-bottom: 0.9rem; }
+
+.type-picker button {
+  flex: 1;
+  font: inherit;
+  font-size: 0.85rem;
+  padding: 0.4rem;
+  border: 1px solid var(--line);
+  border-radius: 0.4rem;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.type-picker button.on { background: #4a7dff; border-color: #4a7dff; color: #fff; }
+
+.sheet label { display: block; margin-bottom: 0.7rem; }
+.sheet label span { display: block; font-size: 0.78rem; opacity: 0.6; margin-bottom: 0.25rem; }
+
+.sheet input {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 0.4rem;
+  background: transparent;
+  color: inherit;
+}
+
+.sheet-actions { display: flex; gap: 0.5rem; margin-top: 0.4rem; }
+.sheet-actions button {
+  font: inherit;
+  font-size: 0.9rem;
+  padding: 0.5rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 0.4rem;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.sheet-actions .primary { margin-left: auto; background: #4a7dff; border-color: #4a7dff; color: #fff; }
+.sheet-actions .danger { color: #b3261e; border-color: #b3261e55; }

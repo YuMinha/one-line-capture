@@ -37,6 +37,11 @@ public class CaptureController {
         return captureService.create(request.text());
     }
 
+    @GetMapping("/{id}")
+    public CaptureResponse get(@PathVariable Long id) {
+        return captureService.get(id);
+    }
+
     @PatchMapping("/{id}")
     public CaptureResponse update(@PathVariable Long id, @Valid @RequestBody CaptureUpdateRequest request) {
         return captureService.update(id, request);

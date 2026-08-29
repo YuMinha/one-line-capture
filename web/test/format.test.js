@@ -1,4 +1,4 @@
-import { describe as describeItem, toKst, typeLabel } from '../src/format.js'
+import { describe as describeItem, fromKstInput, toKst, toKstInput, typeLabel } from '../src/format.js'
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 
@@ -45,4 +45,20 @@ test('타입 라벨은 한국어다', () => {
 
 test('9시 UTC는 KST 18시다', () => {
   assert.match(toKst('2026-08-30T09:00:00Z'), /18:00/)
+})
+
+test('UTC를 datetime-local용 KST 문자열로 바꾼다', () => {
+  assert.equal(toKstInput('2026-08-31T06:00:00Z'), '2026-08-31T15:00')
+  assert.equal(toKstInput('2026-08-30T15:00:00Z'), '2026-08-31T00:00')
+  assert.equal(toKstInput(null), '')
+})
+
+test('datetime-local 값은 KST로 해석해 UTC로 되돌린다', () => {
+  assert.equal(fromKstInput('2026-08-31T15:00'), '2026-08-31T06:00:00.000Z')
+  assert.equal(fromKstInput(''), null)
+})
+
+test('KST 변환은 왕복해도 값이 유지된다', () => {
+  const iso = '2026-08-31T06:00:00.000Z'
+  assert.equal(fromKstInput(toKstInput(iso)), iso)
 })

@@ -42,7 +42,13 @@ const json = (body) => ({ method: 'POST', body: JSON.stringify(body) })
 export const api = {
   health: () => request('/health'),
 
+  get: (id) => request(`/captures/${id}`),
+
   create: (text) => request('/captures', json({ text })),
+
+  update: (id, body) => request(`/captures/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+
+  remove: (id) => request(`/captures/${id}`, { method: 'DELETE' }),
 
   preview: (text) => request('/captures/preview', json({ text })),
 

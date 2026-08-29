@@ -1,6 +1,7 @@
 import { api, ApiError } from './api.js'
 import { createPager } from './pager.js'
 import { itemElement } from './item.js'
+import { openEditSheet } from './edit-sheet.js'
 
 const TABS = [
   { label: '전체', type: null },
@@ -50,6 +51,13 @@ export function renderList(app) {
     status.textContent = ''
     loadMore()
   }
+
+  list.addEventListener('click', (event) => {
+    const li = event.target.closest('.item')
+    // 고치고 나면 목록을 처음부터 다시 그린다. 커서를 이어 붙이면 수정된 항목이
+    // 옛 모습으로 남는다
+    if (li) openEditSheet(Number(li.dataset.id), { onChanged: () => selectTab(pager.type) })
+  })
 
   tabs.addEventListener('click', (event) => {
     const button = event.target.closest('button')
