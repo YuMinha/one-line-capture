@@ -16,7 +16,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 // 어떤 에러든 같은 모양으로 나가야 프론트가 한 곳에서만 처리한다
 @SpringBootTest
-@AutoConfigureMockMvc
+// 인증은 ApiTokenFilterTest가 따로 검증한다. 여기서는 끄고 기능만 본다
+@AutoConfigureMockMvc(addFilters = false)
 @Transactional
 class ErrorFormatTest {
 

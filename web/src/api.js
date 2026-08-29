@@ -1,6 +1,7 @@
 // 기본값이 상대경로인 게 중요하다. 개발에서는 Vite 프록시가, 배포에서는 Caddy가
 // 같은 출처로 넘겨주므로 CORS가 필요 없다 (stack.md §6)
 import { describeHttpError } from './http-error.js'
+import { getToken } from './token.js'
 
 const BASE_URL = import.meta.env?.VITE_API_BASE_URL ?? '/api/v1'
 
@@ -17,8 +18,9 @@ async function request(path, options = {}) {
   let response
   try {
     response = await fetch(BASE_URL + path, {
-      headers: { 'Content-Type': 'application/json' },
       ...options,
+      // 헤더 주입 지점을 여기 한 곳으로 모아둔 이유가 이것이다. 호출부는 토큰을 모른다
+      headers: { 'Content-Type': 'application/json', 'X-API-Token': getToken(), ...options.headers },
     })
   } catch {
     // fetch는 네트워크가 끊겼을 때만 reject한다. 404나 500은 여기로 안 온다
@@ -31,6 +33,10 @@ async function request(path, options = {}) {
   const body = await response.json().catch(() => null)
 
   if (!response.ok) {
+    if (response.status === 401) {
+      // 라우터가 토큰 화면으로 되돌린다. api.js는 화면을 모른다
+      window.dispatchEvent(new CustomEvent('api:unauthorized'))
+    }
     const { code, message } = describeHttpError(response.status, body)
     throw new ApiError(response.status, code, message)
   }

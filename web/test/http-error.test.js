@@ -33,3 +33,9 @@ test('본문이 깨져 있어도 죽지 않는다', () => {
   assert.equal(describeHttpError(400, { nope: 1 }).code, 'UNKNOWN')
   assert.equal(describeHttpError(400, undefined).code, 'UNKNOWN')
 })
+
+test('401은 토큰을 다시 넣으라고 안내한다', () => {
+  const result = describeHttpError(401, null)
+  assert.equal(result.code, 'UNAUTHORIZED')
+  assert.match(result.message, /토큰/)
+})

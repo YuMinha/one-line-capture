@@ -18,7 +18,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 @SpringBootTest
-@AutoConfigureMockMvc
+// 인증은 ApiTokenFilterTest가 따로 검증한다. 여기서는 끄고 기능만 본다
+@AutoConfigureMockMvc(addFilters = false)
 @Transactional
 class DetailToggleApiTest {
 

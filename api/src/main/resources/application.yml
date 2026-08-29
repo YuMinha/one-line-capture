@@ -20,3 +20,7 @@ spring:
 
 server:
   port: 8080
+
+app:
+  # 하드코딩 금지. 값은 .env에서 온다 (CLAUDE.md)
+  api-token: ${API_TOKEN}

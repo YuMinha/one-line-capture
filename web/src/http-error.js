@@ -11,6 +11,9 @@ export function describeHttpError(status, body) {
   if (status === 0 || status === 502 || status === 503 || status === 504) {
     return { code: 'UNAVAILABLE', message: UNAVAILABLE }
   }
+  if (status === 401) {
+    return { code: 'UNAUTHORIZED', message: '토큰이 올바르지 않습니다. 다시 입력해 주세요.' }
+  }
   if (status === 404) {
     return { code: 'NOT_FOUND', message: '없는 항목입니다. 목록을 새로고침해 주세요.' }
   }

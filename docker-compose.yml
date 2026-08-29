@@ -37,6 +37,7 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/${MYSQL_DATABASE}?connectionTimeZone=UTC
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      API_TOKEN: ${API_TOKEN}
       TZ: UTC
     depends_on:
       # DB가 healthy가 될 때까지 기다린다. 이게 없으면 앱이 먼저 떠서
