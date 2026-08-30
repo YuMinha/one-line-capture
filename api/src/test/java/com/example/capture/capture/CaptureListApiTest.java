@@ -32,21 +32,37 @@ class CaptureListApiTest {
     }
 
     @Test
-    @DisplayName("타입 필터 없이 조회하면 최신순으로 요약만 내려온다")
-    void 전체_조회는_요약만() throws Exception {
+    @DisplayName("타입 필터 없이 조회해도 타입별 상세가 함께 내려온다")
+    void 전체_조회에도_상세가_온다() throws Exception {
         save("점심 9000원");
         save("우산 챙기기");
+        save("https://a.com 정리글");
+
+        mockMvc.perform(get("/api/v1/captures"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.length()").value(3))
+                // 최신순이므로 마지막에 저장한 것이 앞에 온다
+                .andExpect(jsonPath("$.items[0].link.url").value("https://a.com"))
+                .andExpect(jsonPath("$.items[1].todo.title").value("우산 챙기기"))
+                .andExpect(jsonPath("$.items[2].expense.amount").value(9000))
+                // 각 항목에는 자기 타입의 상세 하나만 있다
+                .andExpect(jsonPath("$.items[2].todo").doesNotExist())
+                .andExpect(jsonPath("$.items[2].link").doesNotExist())
+                .andExpect(jsonPath("$.hasNext").value(false))
+                .andExpect(jsonPath("$.nextCursor").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("한 타입만 있는 전체 목록도 정상이다")
+    void 전체_조회_단일타입() throws Exception {
+        save("점심 9000원");
+        save("스벅 5,500원");
 
         mockMvc.perform(get("/api/v1/captures"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items.length()").value(2))
-                // 최신순이므로 마지막에 저장한 것이 앞에 온다
-                .andExpect(jsonPath("$.items[0].rawText").value("우산 챙기기"))
-                .andExpect(jsonPath("$.items[1].rawText").value("점심 9000원"))
-                // 타입이 섞인 목록은 상세를 내려주지 않는다
-                .andExpect(jsonPath("$.items[1].expense").doesNotExist())
-                .andExpect(jsonPath("$.hasNext").value(false))
-                .andExpect(jsonPath("$.nextCursor").doesNotExist());
+                .andExpect(jsonPath("$.items[0].expense.amount").value(5500))
+                .andExpect(jsonPath("$.items[1].expense.amount").value(9000));
     }
 
     @Test

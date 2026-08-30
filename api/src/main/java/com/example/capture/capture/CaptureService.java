@@ -16,6 +16,11 @@ import lombok.RequiredArgsConstructor;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Map;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -50,8 +55,7 @@ public class CaptureService {
 
     private List<CaptureResponse> fetch(CaptureType type, Long cursor, Boolean done, Pageable pageable) {
         if (type == null) {
-            return captureRepository.findPage(cursor, pageable).stream()
-                    .map(CaptureResponse::summary).toList();
+            return withDetails(captureRepository.findPage(cursor, pageable));
         }
         return switch (type) {
             case EXPENSE -> expenseRepository.findPage(cursor, pageable).stream()
@@ -184,6 +188,37 @@ public class CaptureService {
     // 요청은 UTC Instant로 오고 저장은 UTC LocalDateTime이다 (stack.md §2.2)
     private LocalDateTime toStored(java.time.Instant dueAt) {
         return dueAt == null ? null : LocalDateTime.ofInstant(dueAt, ZoneOffset.UTC);
+    }
+
+    // 타입이 섞인 목록은 fetch join을 한 번에 못 한다. 대신 이미 가져온 id들로 타입별로
+    // 한 번씩만 더 조회한다. 몇 건이든 쿼리는 최대 4번으로 고정이라 N+1이 아니다 (stack.md §2.5)
+    private List<CaptureResponse> withDetails(List<Capture> captures) {
+        Map<CaptureType, List<Long>> idsByType = captures.stream()
+                .collect(Collectors.groupingBy(Capture::getType,
+                        Collectors.mapping(Capture::getId, Collectors.toList())));
+
+        Map<Long, Expense> expenses = byId(expenseRepository, idsByType.get(CaptureType.EXPENSE), Expense::getCaptureId);
+        Map<Long, Todo> todos = byId(todoRepository, idsByType.get(CaptureType.TODO), Todo::getCaptureId);
+        Map<Long, Link> links = byId(linkRepository, idsByType.get(CaptureType.LINK), Link::getCaptureId);
+
+        return captures.stream().map(capture -> switch (capture.getType()) {
+            case EXPENSE -> detailOr(capture, expenses.get(capture.getId()), CaptureResponse::of);
+            case TODO -> detailOr(capture, todos.get(capture.getId()), CaptureResponse::of);
+            case LINK -> detailOr(capture, links.get(capture.getId()), CaptureResponse::of);
+        }).toList();
+    }
+
+    private <T> Map<Long, T> byId(JpaRepository<T, Long> repository, List<Long> ids, Function<T, Long> key) {
+        // 빈 목록으로 IN 조회를 날리지 않는다
+        if (ids == null || ids.isEmpty()) {
+            return Map.of();
+        }
+        return repository.findAllById(ids).stream().collect(Collectors.toMap(key, Function.identity()));
+    }
+
+    // 상세가 없으면 데이터가 깨진 것이지만, 목록 전체가 안 보이는 것보다는 요약이라도 보이는 게 낫다
+    private <T> CaptureResponse detailOr(Capture capture, T detail, BiFunction<Capture, T, CaptureResponse> mapper) {
+        return detail == null ? CaptureResponse.summary(capture) : mapper.apply(capture, detail);
     }
 
     // 저장하지 않는다. 파서를 고칠 때 결과만 빠르게 확인하는 용도 (stack.md §3.1)

@@ -1,6 +1,15 @@
+# 로그를 제한하지 않으면 컨테이너 로그가 디스크를 채운다. 1vCPU VPS에서 디스크가 차면
+# DB까지 같이 멈춘다. 서비스당 최대 30MB(10MB x 3)
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   db:
     image: mysql:8.4
+    logging: *default-logging
     restart: unless-stopped
     environment:
       MYSQL_DATABASE: ${MYSQL_DATABASE}
@@ -30,6 +39,7 @@ services:
 
   api:
     build: ./api
+    logging: *default-logging
     restart: unless-stopped
     environment:
       # 컨테이너 안에서 DB 주소는 서비스 이름 db다. 127.0.0.1은 자기 자신이라
@@ -55,6 +65,7 @@ services:
 
   web:
     build: ./web
+    logging: *default-logging
     restart: unless-stopped
     depends_on:
       # api가 응답할 때까지 기다린다. 안 그러면 compose up 직후 nginx가 502를 준다
@@ -67,6 +78,7 @@ services:
   # 로컬에서는 web(8081)으로 바로 붙으므로 이 서비스가 뜨지 않는다
   caddy:
     image: caddy:2-alpine
+    logging: *default-logging
     profiles: ["deploy"]
     restart: unless-stopped
     depends_on:
