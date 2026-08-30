@@ -240,7 +240,26 @@ docker compose restart api
 | `web` (nginx) | 13MB | 64MB |
 | `caddy` | — | 128MB |
 
-**메모리 2GB 이상을 권한다.** 1GB에서도 상한을 더 줄이면 돌지만 여유가 없다.
+**메모리 2GB 이상을 권한다.** 1GB 서버(Oracle `VM.Standard.E2.1.Micro` 등)에서는
+`docker-compose.1gb.yml`을 덮어써서 쓴다 — MySQL 버퍼 풀과 `performance-schema`를 줄이고
+JVM 힙을 낮춰 셋이 724MB 안에 들어간다. 실측으로 확인한 값이다.
+
+```bash
+# .env 에 이 줄을 넣으면 docker compose up -d 만으로 적용된다 (리눅스 구분자는 콜론)
+COMPOSE_FILE=docker-compose.yml:docker-compose.1gb.yml
+```
+
+1GB에서는 **swap을 반드시 잡는다.** 여유가 200MB뿐이라 순간적으로 넘칠 때 OOM으로 죽는다.
+
+```bash
+sudo fallocate -l 2G /swapfile
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab   # 재부팅 후에도 유지
+free -h
+```
+
 디스크는 10GB면 충분하다(이미지 약 1.5GB + DB + 로그 최대 120MB).
 CPU는 1코어로 충분하다 — 사용자가 한 명이다.
 

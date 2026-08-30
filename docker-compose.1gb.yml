@@ -1,0 +1,32 @@
+# 메모리 1GB 서버용 덮어쓰기 설정 (Oracle VM.Standard.E2.1.Micro 등).
+#
+#   .env 에 이 줄을 넣으면 docker compose up -d 만으로 적용된다:
+#     COMPOSE_FILE=docker-compose.yml:docker-compose.1gb.yml
+#
+# 1GB에서는 OS와 Docker 데몬이 200MB쯤 쓴다. 남는 800MB를 셋이 나눈다.
+# 여유가 거의 없으므로 swap 2GB를 반드시 함께 잡아야 한다 (README 참고).
+services:
+  db:
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      # 기본 128M도 1GB 서버에는 크다. 1인용이라 데이터가 몇 MB 수준이다
+      - --innodb-buffer-pool-size=48M
+      # 성능 관련 통계 수집을 끄면 MySQL이 200MB 넘게 아낀다
+      - --performance-schema=OFF
+    # 실측 196MB. 데이터가 몇 MB뿐이라 더 줄 이유가 없다
+    mem_limit: 280m
+
+  api:
+    environment:
+      # 55%면 350m 중 약 190MB가 힙이다. 나머지는 메타스페이스·스레드·네이티브 몫
+      # 60%면 420m 중 약 250MB가 힙이다
+      JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=60 -XX:+UseSerialGC -Xss512k"
+    # DB가 남긴 여유를 여기로 돌린다. 부하를 주면 api가 먼저 찬다
+    mem_limit: 420m
+
+  web:
+    mem_limit: 24m
+
+  caddy:
+    mem_limit: 64m
