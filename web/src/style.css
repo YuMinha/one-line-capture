@@ -7,17 +7,26 @@
 body {
   margin: 0;
   padding: 1.5rem 1rem 4rem;
+  /* column이 없으면 header와 main이 가로로 나란히 놓여 화면이 겹쳐 보인다 */
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
 }
 
-#app { width: 100%; max-width: 32rem; }
+/* 헤더와 본문이 같은 폭·같은 왼쪽 선에 맞아야 한다 */
+header,
+#app {
+  width: 100%;
+  max-width: 32rem;
+}
 
 header {
   display: flex;
   align-items: baseline;
   gap: 1rem;
   margin-bottom: 1rem;
+  /* 좁은 화면에서 제목과 탭이 겹치지 않게 줄바꿈을 허용한다 */
+  flex-wrap: wrap;
 }
 
 h1 { font-size: 1.1rem; font-weight: 600; margin: 0; opacity: 0.7; }
