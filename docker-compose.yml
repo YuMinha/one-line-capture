@@ -21,6 +21,11 @@ services:
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
+      # 기본값은 호스트 메모리를 보고 커진다. 작은 VPS에서는 앱과 메모리를 다툰다
+      - --innodb-buffer-pool-size=256M
+    # 한 컨테이너가 폭주해도 다른 컨테이너를 굶기지 않게 상한을 둔다.
+    # 2GB VPS 기준 배분: db 768 + api 640 + web 64 + caddy 128 = 1.6GB, 나머지는 OS 몫
+    mem_limit: 768m
     ports:
       # 호스트 3306이 이미 쓰이고 있으면 .env의 MYSQL_PORT만 바꾼다. 컨테이너 안은 항상 3306
       - "${MYSQL_PORT:-3306}:3306"
@@ -48,7 +53,11 @@ services:
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
       API_TOKEN: ${API_TOKEN}
+      # JVM은 컨테이너 메모리 제한을 읽지만 기본이 25%라 640MB 중 160MB만 쓴다.
+      # 이 컨테이너에는 JVM 말고 아무것도 없으므로 더 준다
+      JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=70"
       TZ: UTC
+    mem_limit: 640m
     depends_on:
       # DB가 healthy가 될 때까지 기다린다. 이게 없으면 앱이 먼저 떠서
       # 연결 실패로 죽는다 (tasks.md T1.8 함정 ②)
@@ -67,6 +76,7 @@ services:
     build: ./web
     logging: *default-logging
     restart: unless-stopped
+    mem_limit: 64m
     depends_on:
       # api가 응답할 때까지 기다린다. 안 그러면 compose up 직후 nginx가 502를 준다
       api:
@@ -80,6 +90,7 @@ services:
     image: caddy:2-alpine
     logging: *default-logging
     profiles: ["deploy"]
+    mem_limit: 128m
     restart: unless-stopped
     depends_on:
       - web
