@@ -122,10 +122,13 @@ com.example.capture
 │   ├─ SummaryController.java
 │   └─ SummaryRepository.java    // 여기만 native SQL
 ├─ user/
-│   ├─ AppUser.java              // 토큰 해시 + 발급/해시 계산
-│   ├─ AppUserRepository.java
-│   ├─ GuestController.java      // POST /api/v1/auth/guest
-│   └─ OwnerTokenSync.java       // 기동 시 주인(id=1) 토큰을 API_TOKEN에 맞춤
+│   ├─ AppUser.java              // 아이디·이메일·비밀번호 해시 (NULL이면 게스트)
+│   ├─ DeviceToken.java          // 기기별 토큰 해시 + 발급/해시 계산
+│   ├─ LinkCode.java             // 5분짜리 1회용 기기 연결 코드
+│   ├─ Passwords.java            // PBKDF2 (JDK 내장, 새 의존성 없음)
+│   ├─ LoginThrottle.java        // 아이디당 5회 실패 → 5분 잠금 (메모리)
+│   ├─ AuthService.java / AuthController.java   // /api/v1/auth/*
+│   └─ OwnerTokenSync.java       // 기동 시 주인(id=1)의 env 토큰을 API_TOKEN에 맞춤
 └─ common/
     ├─ ApiTokenFilter.java
     ├─ GlobalExceptionHandler.java
@@ -241,6 +244,43 @@ ALTER TABLE capture
     ADD CONSTRAINT fk_capture_user FOREIGN KEY (user_id) REFERENCES app_user(id);
 ```
 
+```sql
+-- V6__add_account.sql (로그인·기기 연결, 2026-09-30)
+-- 사용자 1명 = 토큰 여러 개(기기마다 하나). 기기 하나만 로그아웃할 수 있어야 한다
+CREATE TABLE device_token (
+    id          BIGINT      NOT NULL AUTO_INCREMENT,
+    user_id     BIGINT      NOT NULL,
+    token_hash  VARCHAR(64) NOT NULL,                 -- SHA-256 hex
+    from_env    BOOLEAN     NOT NULL DEFAULT FALSE,   -- 주인의 API_TOKEN에서 온 것. 기동 시 교체된다
+    created_at  TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_device_token_hash (token_hash),
+    KEY idx_device_token_user (user_id),
+    CONSTRAINT fk_device_token_user FOREIGN KEY (user_id) REFERENCES app_user(id) ON DELETE CASCADE
+);
+INSERT INTO device_token (user_id, token_hash, from_env)
+    SELECT id, token_hash, id = 1 FROM app_user WHERE token_hash IS NOT NULL;
+
+ALTER TABLE app_user
+    DROP INDEX uk_app_user_token_hash,
+    DROP COLUMN token_hash,
+    ADD COLUMN login_id      VARCHAR(20)  NULL,       -- NULL이면 게스트
+    ADD COLUMN email         VARCHAR(254) NULL,       -- 비밀번호 찾기용. 아직 인증하지 않은 주소다
+    ADD COLUMN password_hash VARCHAR(200) NULL,       -- pbkdf2$반복수$솔트$해시
+    ADD UNIQUE KEY uk_app_user_login_id (login_id),
+    ADD UNIQUE KEY uk_app_user_email (email);
+
+-- 5분짜리 1회용 연결 코드. 코드 원문도 토큰처럼 해시로만 남긴다
+CREATE TABLE link_code (
+    code_hash   VARCHAR(64) NOT NULL,
+    user_id     BIGINT      NOT NULL,
+    expires_at  TIMESTAMP   NOT NULL,
+    PRIMARY KEY (code_hash),
+    KEY idx_link_code_user (user_id),
+    CONSTRAINT fk_link_code_user FOREIGN KEY (user_id) REFERENCES app_user(id) ON DELETE CASCADE
+);
+```
+
 상세 테이블(`expense`/`todo`/`link`)에는 `user_id`를 넣지 않는다. 상세는 항상 capture를 통해
 도달하므로, **소유 검사는 capture 한 곳에서만** 한다. 중복 컬럼은 서로 어긋날 수 있다.
 
@@ -324,7 +364,7 @@ v1은 데이터가 적어서 체감이 없지만, 습관을 들이는 차원에�
 ## 3. API 초안
 
 - Base URL: `/api/v1`
-- 인증: 모든 엔드포인트에 `X-API-Token: <토큰>` 헤더 필수 (`/api/v1/health`, `/api/v1/auth/guest` 제외)
+- 인증: 모든 엔드포인트에 `X-API-Token: <토큰>` 헤더 필수 (`/api/v1/health`, `/api/v1/auth/guest`·`login`·`link` 제외)
 - 모든 데이터는 **토큰의 주인 것만** 보인다. 남의 id는 404 (§2.2)
 - 시각 포맷: ISO-8601 UTC (`2026-08-25T04:30:00Z`)
 - 금액: 숫자 (문자열 아님)
@@ -335,6 +375,12 @@ v1은 데이터가 적어서 체감이 없지만, 습관을 들이는 차원에�
 |---|---|---|
 | `GET` | `/api/v1/health` | 헬스체크. 인증 없음. compose healthcheck가 씀 |
 | `POST` | `/api/v1/auth/guest` | 게스트 토큰 발급. 인증 없음. `201 { "token": "..." }` — 원문은 이때 한 번만 나간다 |
+| `POST` | `/api/v1/auth/register` | 지금 계정에 `{ loginId, email, password }`를 붙인다. 기록은 그대로 |
+| `POST` | `/api/v1/auth/login` | 인증 없음. `{ loginId, password }` → 이 기기용 새 토큰 |
+| `POST` | `/api/v1/auth/link-code` | 연결 코드 발급 `201 { "code": "K7QM-3XPD", "expiresAt": ... }` |
+| `POST` | `/api/v1/auth/link` | 인증 없음. `{ code }` → 이 기기용 새 토큰. 코드는 1회용 |
+| `POST` | `/api/v1/auth/logout` | 이 기기의 토큰만 지운다 |
+| `GET` | `/api/v1/auth/me` | `{ registered, loginId, email }` |
 | `POST` | `/api/v1/captures` | **한 줄 저장 (핵심 API)** |
 | `POST` | `/api/v1/captures/preview` | 저장 없이 파싱 결과만 확인 (파서 개발·디버깅용) |
 | `GET` | `/api/v1/captures` | 목록 조회 (타입 필터, 커서 페이징) |
@@ -551,24 +597,46 @@ Clock clock() { return Clock.systemUTC(); }   // 테스트에서는 Clock.fixed(
 
 ---
 
-## 5. 인증 (v1 + 게스트 모드)
+## 5. 인증 (게스트 + 로그인 + 기기 연결)
 
-`ApiTokenFilter` 하나는 그대로다. 바뀐 건 비교 대상뿐이다 — 환경변수 한 개가 아니라
-**`app_user.token_hash`에서 `SHA-256(헤더)`를 찾는다.** 찾으면 그 `id`를 요청 속성(`userId`)에 싣고,
-없으면 401. `/api/v1/health`, `/api/v1/auth/guest`는 예외.
+`ApiTokenFilter` 하나는 그대로다. **`device_token.token_hash`에서 `SHA-256(헤더)`를 찾는다.**
+찾으면 `userId`와 `tokenId`를 요청 속성에 싣고, 없으면 401.
+`/api/v1/health`, `/api/v1/auth/guest`, `/login`, `/link`는 예외 — 토큰이 없는 사람이 부르는 곳이다.
 
 ```
-X-API-Token ──SHA-256──▶ app_user.token_hash (UNIQUE 인덱스) ──▶ request attr "userId" ──▶ 컨트롤러
+X-API-Token ──SHA-256──▶ device_token.token_hash (UNIQUE) ──▶ request attr userId, tokenId ──▶ 컨트롤러
 ```
 
-- **게스트:** `POST /auth/guest`가 256비트 난수 토큰을 만들어 해시만 저장하고, 원문은 응답으로 한 번만 준다.
-- **주인(id=1):** 기동할 때 `OwnerTokenSync`가 `SHA-256(API_TOKEN)`으로 덮어쓴다.
-  그래서 재발급 절차가 전과 같다 — `.env`를 바꾸고 api를 재시작하면 옛 토큰은 즉시 401이다.
+**로그인 수단이 몇 개든 결과는 같다: 그 기기용 토큰 하나.** 로그인이든 연결 코드든 끝나면
+새 `device_token`을 만들어 원문을 한 번 돌려주고, 그 뒤로는 게스트와 똑같이 헤더로 다닌다.
+세션·JWT를 따로 두지 않는 이유다 — 인증 경로가 하나면 격리 검사도 한 곳에서 끝난다.
+
+- **게스트:** `POST /auth/guest`가 사용자와 토큰을 만든다. `login_id`가 NULL인 사용자다.
+- **가입:** 지금 토큰의 사용자에 아이디·이메일·비밀번호를 **붙인다.** 새 사용자를 만들지 않으므로 기록이 그대로다.
+- **로그인:** 아이디·비밀번호가 맞으면 그 사용자에게 새 토큰. 이 기기에서 게스트로 쓴 기록은 합쳐지지 않는다.
+- **연결 코드:** 로그인된 기기에서 8자리 코드(`K7QM-3XPD`, 헷갈리는 0/O/1/I/L 제외 31자)를 받아
+  새 기기에 넣는다. 5분, 1회용, 새 코드를 받으면 이전 코드는 죽는다.
+  31⁸ ≈ 8.5×10¹¹이라 5분 안에 대입으로 맞히는 건 불가능하다 — 6자리 숫자(10⁶)였다면 시도 제한이 필수였다.
+- **로그아웃:** `tokenId`의 행만 지운다. 다른 기기는 그대로다.
+- **주인(id=1):** 기동할 때 `OwnerTokenSync`가 `from_env = TRUE`인 토큰을 `SHA-256(API_TOKEN)`으로 맞춘다.
+  재발급 절차는 전과 같다 — `.env`를 바꾸고 api를 재시작하면 옛 env 토큰은 즉시 401이다.
+
+**비밀번호는 PBKDF2-HMAC-SHA256** (JDK 내장, 새 의존성 없음), 솔트 16바이트, 저장 형식 `pbkdf2$반복수$솔트$해시`.
+토큰과 달리 비밀번호는 사람이 고른 값이라 사전 공격이 된다 — 그래서 여기선 **일부러 느린 해시**를 쓴다.
+반복수를 저장 형식에 넣어 두었으므로 나중에 올려도 기존 해시는 그대로 검증된다.
+
+**로그인 시도 제한:** 같은 아이디로 5번 틀리면 5분 잠금(429). 메모리에만 있어 재시작하면 풀린다.
+틀린 이유(없는 아이디 / 틀린 비밀번호)는 응답에서 구분하지 않는다 — 구분하면 가입된 아이디를 캐낼 수 있다.
+없는 아이디일 때도 해시를 한 번 계산해서 응답 시간으로도 구분되지 않게 한다.
+
+**비밀번호 찾기는 아직 없다.** 메일 발송에 새 의존성(`spring-boot-starter-mail`)과 SMTP 계정이 필요하다.
+이메일은 저장만 하고 인증하지 않았으므로, 찾기를 만들 때 **이메일 인증을 먼저** 붙여야 한다
+(인증 안 된 주소로 재설정 메일을 보내면 남의 주소를 적은 사람이 계정을 가로챌 수 있다).
 - **타이밍 공격 대비(`MessageDigest.isEqual`)는 빠졌다.** 이제 비교는 DB 인덱스 조회이고,
   조회 대상이 원문이 아니라 해시라서 응답 시간으로 알아낼 수 있는 건 "해시 앞자리"뿐이다. 해시의 앞자리로는 토큰을 역산할 수 없다.
 
 토큰은 프론트에서 `localStorage`에 저장한다. **처음 열 때 저장된 토큰이 없으면 자동으로 게스트 토큰을 받는다.**
-주인이 새 기기에서 쓰려면 `#/token` 화면에 `API_TOKEN`을 넣는다.
+가입·로그인·연결 코드는 `#/account` 화면에 있다. `#/token`(토큰 직접 입력)은 주인용 뒷문으로 남긴다.
 
 > 이 방식의 한계는 정직하게 알아두자: XSS가 있으면 토큰이 털린다. 사용자가 나 하나이고
 > 외부 스크립트를 안 붙이므로 v1에선 감수한다. v2에서 다중 사용자로 가면 이 자리는
