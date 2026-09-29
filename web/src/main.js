@@ -1,4 +1,5 @@
 import './style.css'
+import { renderAccount } from './account-view.js'
 import { renderInput } from './input-view.js'
 import { renderList } from './list-view.js'
 import { renderSummary } from './summary-view.js'
@@ -13,6 +14,8 @@ const nav = document.querySelector('#nav')
 const ROUTES = {
   '#/list': renderList,
   '#/summary': renderSummary,
+  // 로그인·연결로 토큰이 바뀌면 입력 화면으로 보낸다. 다른 계정의 화면이 남아 있으면 안 된다
+  '#/account': (app) => renderAccount(app, { onSwitched: goHome }),
 }
 
 let cleanup = null
