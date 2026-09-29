@@ -287,6 +287,17 @@ docker compose --profile deploy up -d --build
 방화벽은 **22 / 80 / 443만** 열면 된다. `WEB_PORT`·`API_PORT`·`MYSQL_PORT`는 호스트에
 바인딩되므로, 서버에서는 이 포트들을 방화벽에서 막아 두는 편이 안전하다.
 
+실제 서버 `.env`는 방화벽에 기대지 않고 아예 서버 안에서만 열리게 둔다. 80은 Caddy가 써야 하므로
+`WEB_PORT`도 반드시 옮겨야 한다. `COMPOSE_PROFILES=deploy`가 있으면 `docker compose up -d`만으로 Caddy까지 뜬다.
+
+```dotenv
+MYSQL_PORT=127.0.0.1:3306
+API_PORT=127.0.0.1:8080
+WEB_PORT=127.0.0.1:8081
+DOMAIN=one-line.duckdns.org      # DuckDNS 무료 서브도메인. A 레코드가 서버 IP를 가리켜야 한다
+COMPOSE_PROFILES=deploy
+```
+
 > 인증서는 `caddy-data` 볼륨에 쌓인다. 이 볼륨을 날리면 재발급 한도(주당 5회)에 걸릴 수 있다.
 > `docker compose down -v` 는 서버에서 절대 쓰지 말 것.
 
