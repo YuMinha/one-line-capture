@@ -20,6 +20,10 @@ public class Capture {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // 연관(@ManyToOne) 대신 id만 든다. 소유 검사에는 id 비교만 필요하고, 사용자 행을 읽을 일이 없다
+    @Column(name = "user_id", nullable = false, updatable = false)
+    private Long userId;
+
     @Column(name = "raw_text", nullable = false, length = 500)
     private String rawText;
 
@@ -41,7 +45,8 @@ public class Capture {
 
     protected Capture() {}
 
-    public Capture(String rawText, CaptureType type, CaptureSource source) {
+    public Capture(Long userId, String rawText, CaptureType type, CaptureSource source) {
+        this.userId = userId;
         this.rawText = rawText;
         this.type = type;
         this.source = source;

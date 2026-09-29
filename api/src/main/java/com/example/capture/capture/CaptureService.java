@@ -9,6 +9,7 @@ import com.example.capture.capture.domain.Todo;
 import com.example.capture.parser.CaptureParser;
 import com.example.capture.common.ApiException;
 import com.example.capture.parser.ParsedCapture;
+import com.example.capture.user.AppUser;
 import jakarta.persistence.EntityManager;
 import java.time.Clock;
 import java.time.Instant;
@@ -233,7 +234,7 @@ public class CaptureService {
         ParsedCapture parsed = captureParser.parse(rawText);
 
         Capture capture = captureRepository.saveAndFlush(
-                new Capture(rawText, parsed.type(), CaptureSource.AUTO));
+                new Capture(AppUser.OWNER_ID, rawText, parsed.type(), CaptureSource.AUTO));
         // created_at은 DB가 채우므로 다시 읽지 않으면 null이다
         entityManager.refresh(capture);
 
