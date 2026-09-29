@@ -25,6 +25,8 @@ public class AuthController {
 
     public record LoginRequest(String loginId, String password) {}
 
+    public record LinkRequest(String code) {}
+
     @PostMapping("/guest")
     @ResponseStatus(HttpStatus.CREATED)
     public TokenResponse guest() {
@@ -46,6 +48,17 @@ public class AuthController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void logout(@RequestAttribute(ApiTokenFilter.TOKEN_ID) Long tokenId) {
         authService.logout(tokenId);
+    }
+
+    @PostMapping("/link-code")
+    @ResponseStatus(HttpStatus.CREATED)
+    public AuthService.IssuedCode linkCode(@RequestAttribute(ApiTokenFilter.USER_ID) Long userId) {
+        return authService.issueLinkCode(userId);
+    }
+
+    @PostMapping("/link")
+    public TokenResponse link(@RequestBody LinkRequest request) {
+        return new TokenResponse(authService.redeemLinkCode(request.code()));
     }
 
     @GetMapping("/me")

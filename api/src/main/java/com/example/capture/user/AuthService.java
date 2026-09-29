@@ -1,6 +1,12 @@
 package com.example.capture.user;
 
 import com.example.capture.common.ApiException;
+import java.security.SecureRandom;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.Locale;
 import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
@@ -20,8 +26,19 @@ public class AuthService {
     private final AppUserRepository appUserRepository;
     private final DeviceTokenRepository deviceTokenRepository;
     private final LoginThrottle loginThrottle;
+    private final LinkCodeRepository linkCodeRepository;
+    private final Clock clock;
+
+    // 0/O, 1/I/L을 뺐다. 폰 화면을 보고 PC에 옮겨 칠 때 헷갈리지 않게.
+    // 31자 8칸 = 약 8.5×10^11. 5분 안에 대입으로 맞히는 건 불가능해서 시도 제한이 필요 없다 (stack.md §5)
+    private static final String CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+    private static final int CODE_LENGTH = 8;
+    static final Duration CODE_TTL = Duration.ofMinutes(5);
+    private static final SecureRandom RANDOM = new SecureRandom();
 
     public record Me(boolean registered, String loginId, String email) {}
+
+    public record IssuedCode(String code, Instant expiresAt) {}
 
     // 가입 없이 기기마다 계정을 하나씩 준다. 친구가 주소만 열어도 바로 써볼 수 있게 (spec.md §2)
     // ponytail: 발급 횟수 제한 없음. 남용되면 IP당 분당 N회 제한을 필터에 추가
@@ -89,6 +106,32 @@ public class AuthService {
     @Transactional
     public void logout(Long tokenId) {
         deviceTokenRepository.deleteById(tokenId);
+    }
+
+    // 새 코드를 받으면 이전 코드는 죽는다. 살아 있는 코드가 사용자당 하나뿐이어야 새어 나간 코드를 신경 쓸 곳이 준다
+    @Transactional
+    public IssuedCode issueLinkCode(Long userId) {
+        linkCodeRepository.deleteByUserId(userId);
+        StringBuilder code = new StringBuilder(CODE_LENGTH);
+        for (int i = 0; i < CODE_LENGTH; i++) {
+            code.append(CODE_ALPHABET.charAt(RANDOM.nextInt(CODE_ALPHABET.length())));
+        }
+        Instant expiresAt = Instant.now(clock).plus(CODE_TTL);
+        linkCodeRepository.save(new LinkCode(DeviceToken.hashOf(code.toString()), userId,
+                LocalDateTime.ofInstant(expiresAt, ZoneOffset.UTC)));
+        return new IssuedCode(code.substring(0, 4) + "-" + code.substring(4), expiresAt);
+    }
+
+    // 1회용이다. 쓰는 순간 지워서, 어깨너머로 본 사람이 같은 코드를 또 쓸 수 없다
+    @Transactional
+    public String redeemLinkCode(String code) {
+        // 하이픈·공백·소문자로 쳐도 받아준다. 사람이 옮겨 치는 값이다
+        String normalized = code == null ? "" : code.toUpperCase(Locale.ROOT).replaceAll("[^A-Z0-9]", "");
+        LinkCode found = linkCodeRepository.findById(DeviceToken.hashOf(normalized))
+                .filter(c -> c.getExpiresAt().isAfter(LocalDateTime.ofInstant(Instant.now(clock), ZoneOffset.UTC)))
+                .orElseThrow(() -> ApiException.badRequest("LINK_CODE_INVALID", "코드가 틀렸거나 만료됐습니다"));
+        linkCodeRepository.delete(found);
+        return issueToken(found.getUserId());
     }
 
     @Transactional(readOnly = true)
