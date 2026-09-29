@@ -9,7 +9,6 @@ import com.example.capture.capture.domain.Todo;
 import com.example.capture.parser.CaptureParser;
 import com.example.capture.common.ApiException;
 import com.example.capture.parser.ParsedCapture;
-import com.example.capture.user.AppUser;
 import jakarta.persistence.EntityManager;
 import java.time.Clock;
 import java.time.Instant;
@@ -42,36 +41,35 @@ public class CaptureService {
     private static final int MAX_SIZE = 50;
 
     @Transactional(readOnly = true)
-    public CaptureListResponse list(CaptureType type, Long cursor, int size, Boolean done) {
+    public CaptureListResponse list(Long userId, CaptureType type, Long cursor, int size, Boolean done) {
         int limit = Math.min(Math.max(size, 1), MAX_SIZE);
         // 한 건 더 읽어서 다음 페이지가 있는지 본다. COUNT 쿼리를 따로 날리지 않아도 된다
         Pageable pageable = PageRequest.of(0, limit + 1);
 
-        List<CaptureResponse> found = fetch(type, cursor, done, pageable);
+        List<CaptureResponse> found = fetch(userId, type, cursor, done, pageable);
         boolean hasNext = found.size() > limit;
         List<CaptureResponse> items = hasNext ? found.subList(0, limit) : found;
 
         return new CaptureListResponse(items, hasNext ? items.get(items.size() - 1).id() : null, hasNext);
     }
 
-    private List<CaptureResponse> fetch(CaptureType type, Long cursor, Boolean done, Pageable pageable) {
+    private List<CaptureResponse> fetch(Long userId, CaptureType type, Long cursor, Boolean done, Pageable pageable) {
         if (type == null) {
-            return withDetails(captureRepository.findPage(cursor, pageable));
+            return withDetails(captureRepository.findPage(userId, cursor, pageable));
         }
         return switch (type) {
-            case EXPENSE -> expenseRepository.findPage(cursor, pageable).stream()
+            case EXPENSE -> expenseRepository.findPage(userId, cursor, pageable).stream()
                     .map(e -> CaptureResponse.of(e.getCapture(), e)).toList();
-            case TODO -> todoRepository.findPage(cursor, done, pageable).stream()
+            case TODO -> todoRepository.findPage(userId, cursor, done, pageable).stream()
                     .map(t -> CaptureResponse.of(t.getCapture(), t)).toList();
-            case LINK -> linkRepository.findPage(cursor, pageable).stream()
+            case LINK -> linkRepository.findPage(userId, cursor, pageable).stream()
                     .map(l -> CaptureResponse.of(l.getCapture(), l)).toList();
         };
     }
 
     @Transactional(readOnly = true)
-    public CaptureResponse get(Long id) {
-        Capture capture = captureRepository.findById(id)
-                .orElseThrow(() -> ApiException.notFound("CAPTURE_NOT_FOUND", "없는 캡처입니다"));
+    public CaptureResponse get(Long userId, Long id) {
+        Capture capture = findOwned(userId, id);
 
         return switch (capture.getType()) {
             case EXPENSE -> CaptureResponse.of(capture, expenseRepository.findById(id).orElseThrow(this::detailMissing));
@@ -80,15 +78,20 @@ public class CaptureService {
         };
     }
 
+    // 상세(expense/todo/link)는 capture의 소유가 확인된 뒤에만 id로 찾는다. 이 순서가 소유 검사의 전부다
+    private Capture findOwned(Long userId, Long id) {
+        return captureRepository.findByIdAndUserId(id, userId)
+                .orElseThrow(() -> ApiException.notFound("CAPTURE_NOT_FOUND", "없는 캡처입니다"));
+    }
+
     // capture는 있는데 상세가 없으면 데이터가 깨진 것이다. 조용히 넘기지 않는다
     private ApiException detailMissing() {
         return ApiException.notFound("DETAIL_NOT_FOUND", "상세를 찾을 수 없습니다");
     }
 
     @Transactional
-    public CaptureResponse update(Long id, CaptureUpdateRequest request) {
-        Capture capture = captureRepository.findById(id)
-                .orElseThrow(() -> ApiException.notFound("CAPTURE_NOT_FOUND", "없는 캡처입니다"));
+    public CaptureResponse update(Long userId, Long id, CaptureUpdateRequest request) {
+        Capture capture = findOwned(userId, id);
 
         CaptureType before = capture.getType();
         if (before != request.type()) {
@@ -136,16 +139,16 @@ public class CaptureService {
     }
 
     @Transactional
-    public CaptureResponse changeDone(Long captureId, boolean done) {
-        Todo todo = todoRepository.findById(captureId)
+    public CaptureResponse changeDone(Long userId, Long captureId, boolean done) {
+        Todo todo = todoRepository.findOwned(captureId, userId)
                 .orElseThrow(() -> ApiException.notFound("TODO_NOT_FOUND", "없는 할일입니다"));
         todo.changeDone(done, nowUtc());
         return CaptureResponse.of(todo.getCapture(), todo);
     }
 
     @Transactional
-    public CaptureResponse changeRead(Long captureId, boolean read) {
-        Link link = linkRepository.findById(captureId)
+    public CaptureResponse changeRead(Long userId, Long captureId, boolean read) {
+        Link link = linkRepository.findOwned(captureId, userId)
                 .orElseThrow(() -> ApiException.notFound("LINK_NOT_FOUND", "없는 링크입니다"));
         link.changeRead(read, nowUtc());
         return CaptureResponse.of(link.getCapture(), link);
@@ -158,9 +161,8 @@ public class CaptureService {
     }
 
     @Transactional
-    public void delete(Long id) {
-        Capture capture = captureRepository.findById(id)
-                .orElseThrow(() -> ApiException.notFound("CAPTURE_NOT_FOUND", "없는 캡처입니다"));
+    public void delete(Long userId, Long id) {
+        Capture capture = findOwned(userId, id);
         // 상세를 먼저 지운다. 영속성 컨텍스트에 남은 상세가 capture를 참조하고 있으면
         // Hibernate가 capture 삭제를 flush에 싣지 않는다
         deleteDetail(capture.getType(), id);
@@ -229,12 +231,12 @@ public class CaptureService {
     }
 
     @Transactional
-    public CaptureResponse create(String text) {
+    public CaptureResponse create(Long userId, String text) {
         String rawText = text.trim();
         ParsedCapture parsed = captureParser.parse(rawText);
 
         Capture capture = captureRepository.saveAndFlush(
-                new Capture(AppUser.OWNER_ID, rawText, parsed.type(), CaptureSource.AUTO));
+                new Capture(userId, rawText, parsed.type(), CaptureSource.AUTO));
         // created_at은 DB가 채우므로 다시 읽지 않으면 null이다
         entityManager.refresh(capture);
 

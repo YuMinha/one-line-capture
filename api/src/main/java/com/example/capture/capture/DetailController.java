@@ -1,9 +1,11 @@
 package com.example.capture.capture;
 
+import com.example.capture.common.ApiTokenFilter;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -17,14 +19,16 @@ public class DetailController {
     private final CaptureService captureService;
 
     @PatchMapping("/todos/{captureId}")
-    public CaptureResponse toggleDone(@PathVariable Long captureId,
+    public CaptureResponse toggleDone(@RequestAttribute(ApiTokenFilter.USER_ID) Long userId,
+                                      @PathVariable Long captureId,
                                       @Valid @RequestBody DetailToggleRequest request) {
-        return captureService.changeDone(captureId, request.value());
+        return captureService.changeDone(userId, captureId, request.value());
     }
 
     @PatchMapping("/links/{captureId}")
-    public CaptureResponse toggleRead(@PathVariable Long captureId,
+    public CaptureResponse toggleRead(@RequestAttribute(ApiTokenFilter.USER_ID) Long userId,
+                                      @PathVariable Long captureId,
                                       @Valid @RequestBody DetailToggleRequest request) {
-        return captureService.changeRead(captureId, request.value());
+        return captureService.changeRead(userId, captureId, request.value());
     }
 }

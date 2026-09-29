@@ -5,8 +5,10 @@ import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeParseException;
 import com.example.capture.common.ApiException;
+import com.example.capture.common.ApiTokenFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -20,8 +22,8 @@ public class SummaryController {
     private final Clock clock;
 
     @GetMapping("/expenses")
-    public ExpenseSummaryResponse expenses(@RequestParam(required = false) String month) {
-        return summaryService.ofMonth(parse(month));
+    public ExpenseSummaryResponse expenses(@RequestAttribute(ApiTokenFilter.USER_ID) Long userId, @RequestParam(required = false) String month) {
+        return summaryService.ofMonth(userId, parse(month));
     }
 
     private YearMonth parse(String month) {

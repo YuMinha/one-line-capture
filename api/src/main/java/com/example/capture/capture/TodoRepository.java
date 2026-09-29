@@ -2,6 +2,7 @@ package com.example.capture.capture;
 
 import com.example.capture.capture.domain.Todo;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -14,9 +15,14 @@ public interface TodoRepository extends JpaRepository<Todo, Long> {
     @Query("""
             select d from Todo d
             join fetch d.capture c
-            where (:cursor is null or c.id < :cursor)
+            where c.userId = :userId
+              and (:cursor is null or c.id < :cursor)
               and (:done is null or d.done = :done)
             order by c.id desc
             """)
-    List<Todo> findPage(@Param("cursor") Long cursor, @Param("done") Boolean done, Pageable pageable);
+    List<Todo> findPage(@Param("userId") Long userId, @Param("cursor") Long cursor, @Param("done") Boolean done, Pageable pageable);
+
+    // 소유 검사는 capture 쪽 user_id로만 한다. 상세 테이블에는 user_id가 없다 (stack.md §2.1)
+    @Query("select d from Todo d join fetch d.capture c where c.id = :id and c.userId = :userId")
+    Optional<Todo> findOwned(@Param("id") Long id, @Param("userId") Long userId);
 }

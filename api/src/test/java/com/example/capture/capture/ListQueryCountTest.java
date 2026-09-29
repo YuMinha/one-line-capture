@@ -3,6 +3,7 @@ package com.example.capture.capture;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.example.capture.capture.domain.CaptureType;
+import com.example.capture.user.AppUser;
 import jakarta.persistence.EntityManager;
 import org.hibernate.SessionFactory;
 import org.hibernate.stat.Statistics;
@@ -30,7 +31,7 @@ class ListQueryCountTest {
     }
 
     private void save(String text) {
-        captureService.create(text);
+        captureService.create(AppUser.OWNER_ID, text);
     }
 
     private long countQueriesForList(CaptureType type) {
@@ -40,7 +41,7 @@ class ListQueryCountTest {
         stats.setStatisticsEnabled(true);
         stats.clear();
 
-        captureService.list(type, null, 50, null);
+        captureService.list(AppUser.OWNER_ID, type, null, 50, null);
 
         return stats.getPrepareStatementCount();
     }

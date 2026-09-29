@@ -11,7 +11,9 @@ import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import com.example.capture.AsOwner;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.context.annotation.Import;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -20,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 @SpringBootTest
 // 인증은 ApiTokenFilterTest가 따로 검증한다. 여기서는 끄고 기능만 본다
 @AutoConfigureMockMvc(addFilters = false)
+@Import(AsOwner.class)
 @Transactional
 class DetailToggleApiTest {
 

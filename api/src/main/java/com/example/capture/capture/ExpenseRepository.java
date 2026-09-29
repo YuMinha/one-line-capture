@@ -14,8 +14,9 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
     @Query("""
             select d from Expense d
             join fetch d.capture c
-            where (:cursor is null or c.id < :cursor)
+            where c.userId = :userId
+              and (:cursor is null or c.id < :cursor)
             order by c.id desc
             """)
-    List<Expense> findPage(@Param("cursor") Long cursor, Pageable pageable);
+    List<Expense> findPage(@Param("userId") Long userId, @Param("cursor") Long cursor, Pageable pageable);
 }

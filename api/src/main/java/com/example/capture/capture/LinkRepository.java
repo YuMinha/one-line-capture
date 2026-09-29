@@ -2,6 +2,7 @@ package com.example.capture.capture;
 
 import com.example.capture.capture.domain.Link;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -14,8 +15,13 @@ public interface LinkRepository extends JpaRepository<Link, Long> {
     @Query("""
             select d from Link d
             join fetch d.capture c
-            where (:cursor is null or c.id < :cursor)
+            where c.userId = :userId
+              and (:cursor is null or c.id < :cursor)
             order by c.id desc
             """)
-    List<Link> findPage(@Param("cursor") Long cursor, Pageable pageable);
+    List<Link> findPage(@Param("userId") Long userId, @Param("cursor") Long cursor, Pageable pageable);
+
+    // 소유 검사는 capture 쪽 user_id로만 한다. 상세 테이블에는 user_id가 없다 (stack.md §2.1)
+    @Query("select d from Link d join fetch d.capture c where c.id = :id and c.userId = :userId")
+    Optional<Link> findOwned(@Param("id") Long id, @Param("userId") Long userId);
 }

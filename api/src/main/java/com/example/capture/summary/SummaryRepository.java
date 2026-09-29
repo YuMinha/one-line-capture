@@ -16,11 +16,14 @@ public interface SummaryRepository extends Repository<Expense, Long> {
                    SUM(e.amount) AS totalAmount,
                    COUNT(*)      AS entryCount
             FROM expense e
-            WHERE e.spent_at >= :monthStart
+            JOIN capture c ON c.id = e.capture_id
+            WHERE c.user_id = :userId
+              AND e.spent_at >= :monthStart
               AND e.spent_at <  :nextMonthStart
             GROUP BY e.spent_at
             ORDER BY e.spent_at
             """, nativeQuery = true)
-    List<DailyTotal> findDailyTotals(@Param("monthStart") LocalDate monthStart,
+    List<DailyTotal> findDailyTotals(@Param("userId") Long userId,
+                                     @Param("monthStart") LocalDate monthStart,
                                      @Param("nextMonthStart") LocalDate nextMonthStart);
 }

@@ -14,9 +14,9 @@ public class SummaryService {
     private final SummaryRepository summaryRepository;
 
     @Transactional(readOnly = true)
-    public ExpenseSummaryResponse ofMonth(YearMonth month) {
+    public ExpenseSummaryResponse ofMonth(Long userId, YearMonth month) {
         List<ExpenseSummaryResponse.Daily> daily = summaryRepository
-                .findDailyTotals(month.atDay(1), month.plusMonths(1).atDay(1))
+                .findDailyTotals(userId, month.atDay(1), month.plusMonths(1).atDay(1))
                 .stream()
                 .map(row -> new ExpenseSummaryResponse.Daily(
                         row.getSpentDate(), normalize(row.getTotalAmount()), row.getEntryCount()))
