@@ -24,6 +24,7 @@ yarn-error.log*
 .idea/
 *.iml
 .vscode/
+.serena/
 .settings/
 .project
 .classpath
