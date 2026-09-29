@@ -48,6 +48,8 @@ const json = (body) => ({ method: 'POST', body: JSON.stringify(body) })
 export const api = {
   health: () => request('/health'),
 
+  issueGuest: () => request('/auth/guest', { method: 'POST' }),
+
   get: (id) => request(`/captures/${id}`),
 
   create: (text) => request('/captures', json({ text })),

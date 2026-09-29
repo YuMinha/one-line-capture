@@ -2,7 +2,8 @@ import './style.css'
 import { renderInput } from './input-view.js'
 import { renderList } from './list-view.js'
 import { renderSummary } from './summary-view.js'
-import { renderToken } from './token-view.js'
+import { toast } from './toast.js'
+import { renderToken, startAsGuest } from './token-view.js'
 import { clearToken, getToken } from './token.js'
 
 const app = document.querySelector('#app')
@@ -16,19 +17,39 @@ const ROUTES = {
 
 let cleanup = null
 
-function route() {
-  cleanup?.()
+const goHome = () => {
+  if (location.hash === '#/' || location.hash === '') route()
+  else location.hash = '#/'
+}
 
-  // 토큰이 없으면 어떤 화면도 열지 않는다. 열어봐야 전부 401이다
-  if (!getToken()) {
-    cleanup = renderToken(app, { onDone: route }) ?? null
-    nav.hidden = true
+async function route() {
+  cleanup?.()
+  cleanup = null
+
+  if (location.hash === '#/token') {
+    cleanup = renderToken(app, { onDone: goHome }) ?? null
+    markNav()
     return
   }
-  nav.hidden = false
+
+  // 처음 온 기기다. 입력할 것 없이 바로 쓰게 이 기기 전용 계정을 받는다 (spec.md §2)
+  if (!getToken()) {
+    try {
+      await startAsGuest()
+    } catch (e) {
+      // 발급이 안 되면 어떤 화면을 열어도 전부 401이다. 다시 시도할 수 있는 곳으로 보낸다
+      toast(e.message)
+      location.hash = '#/token'
+      return
+    }
+  }
 
   const render = ROUTES[location.hash] ?? renderInput
   cleanup = render(app) ?? null
+  markNav()
+}
+
+function markNav() {
   for (const link of nav.children) {
     link.classList.toggle('on', link.getAttribute('href') === (location.hash || '#/'))
   }
@@ -37,10 +58,12 @@ function route() {
 window.addEventListener('hashchange', route)
 route()
 
-// 토큰이 만료되거나 서버에서 바뀌면 모든 요청이 401이 된다. 그때 토큰 화면으로 되돌린다
+// 주인 토큰이 바뀌었거나 게스트 계정이 사라지면 모든 요청이 401이 된다.
+// 여기서 자동으로 새 게스트를 받지 않는다. 새로 받은 토큰도 401이면 발급과 401이 끝없이 돈다.
+// 토큰 화면에서 사람이 "토큰 넣기"와 "새로 시작" 중에 고르게 한다
 window.addEventListener('api:unauthorized', () => {
   clearToken()
-  route()
+  if (location.hash !== '#/token') location.hash = '#/token'
 })
 
 // 서비스워커는 배포본에서만 등록한다. 개발 중에는 캐시가 HMR을 방해한다

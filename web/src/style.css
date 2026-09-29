@@ -15,7 +15,8 @@ body {
 
 /* 헤더와 본문이 같은 폭·같은 왼쪽 선에 맞아야 한다 */
 header,
-#app {
+#app,
+footer {
   width: 100%;
   max-width: 32rem;
 }
@@ -248,4 +249,16 @@ h1 { font-size: 1.1rem; font-weight: 600; margin: 0; opacity: 0.7; }
   color: #fff;
   cursor: pointer;
 }
+#token-form .ghost {
+  font: inherit;
+  padding: 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
 .toast.ok { background: #0a7d32; }
+
+footer { margin-top: 2.5rem; font-size: 0.8rem; text-align: center; }
+footer a { color: inherit; opacity: 0.45; }

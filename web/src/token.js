@@ -1,7 +1,7 @@
 const KEY = 'capture.apiToken'
 
-// localStorage에 둔다. XSS가 있으면 털리지만 v1은 사용자가 나 하나고 외부 스크립트를
-// 붙이지 않으므로 감수한다. v2에서 다중 사용자가 되면 HttpOnly 쿠키로 바뀐다 (stack.md §5)
+// localStorage에 둔다. XSS가 있으면 털리지만 외부 스크립트를 붙이지 않으므로 감수한다.
+// 게스트에게는 이 값이 기록을 여는 유일한 열쇠다. 지워지면 서버도 되살려줄 수 없다 (spec.md §7)
 export function getToken() {
   try {
     return localStorage.getItem(KEY) ?? ''
