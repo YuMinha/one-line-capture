@@ -6,8 +6,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.example.capture.user.AppUser;
-import com.example.capture.user.AppUserRepository;
+import com.example.capture.user.DeviceToken;
+import com.example.capture.user.DeviceTokenRepository;
 import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -29,7 +29,7 @@ class ApiTokenFilterTest {
     private MockMvc mockMvc;
 
     @Autowired
-    private AppUserRepository appUserRepository;
+    private DeviceTokenRepository deviceTokenRepository;
 
     // 주인 토큰. OwnerTokenSync가 기동 시 app_user id=1에 심는다
     @Value("${app.api-token}")
@@ -92,8 +92,8 @@ class ApiTokenFilterTest {
         String second = issueGuest();
 
         assertThat(first).isNotEqualTo(second).hasSizeGreaterThanOrEqualTo(43);
-        assertThat(appUserRepository.findByTokenHash(first)).isEmpty();
-        assertThat(appUserRepository.findByTokenHash(AppUser.hashOf(first))).isPresent();
+        assertThat(deviceTokenRepository.findByTokenHash(first)).isEmpty();
+        assertThat(deviceTokenRepository.findByTokenHash(DeviceToken.hashOf(first))).isPresent();
     }
 
     @Test
