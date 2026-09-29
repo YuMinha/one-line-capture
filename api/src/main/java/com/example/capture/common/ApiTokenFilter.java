@@ -1,7 +1,7 @@
 package com.example.capture.common;
 
-import com.example.capture.user.AppUser;
-import com.example.capture.user.AppUserRepository;
+import com.example.capture.user.DeviceToken;
+import com.example.capture.user.DeviceTokenRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -24,12 +24,15 @@ public class ApiTokenFilter extends OncePerRequestFilter {
 
     // 컨트롤러는 @RequestAttribute(USER_ID)로 받는다. 헤더를 직접 읽는 곳이 필터 하나뿐이게
     public static final String USER_ID = "userId";
+    // 로그아웃이 "이 기기"의 토큰만 지우려면 어느 행으로 들어왔는지 알아야 한다
+    public static final String TOKEN_ID = "tokenId";
 
     private static final String HEADER = "X-API-Token";
-    // 헬스체크는 compose가 토큰 없이 찌르고, 게스트 발급은 토큰이 없는 사람이 부른다
-    private static final Set<String> OPEN_PATHS = Set.of("/api/v1/health", "/api/v1/auth/guest");
+    // 헬스체크는 compose가 토큰 없이 찌르고, 나머지는 토큰을 받으러 오는 사람이 부른다
+    private static final Set<String> OPEN_PATHS = Set.of(
+            "/api/v1/health", "/api/v1/auth/guest", "/api/v1/auth/login", "/api/v1/auth/link");
 
-    private final AppUserRepository appUserRepository;
+    private final DeviceTokenRepository deviceTokenRepository;
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
@@ -45,14 +48,15 @@ public class ApiTokenFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                     FilterChain chain) throws ServletException, IOException {
-        Optional<AppUser> user = Optional.ofNullable(request.getHeader(HEADER))
+        Optional<DeviceToken> token = Optional.ofNullable(request.getHeader(HEADER))
                 .filter(header -> !header.isBlank())
-                .flatMap(header -> appUserRepository.findByTokenHash(AppUser.hashOf(header)));
-        if (user.isEmpty()) {
+                .flatMap(header -> deviceTokenRepository.findByTokenHash(DeviceToken.hashOf(header)));
+        if (token.isEmpty()) {
             reject(response);
             return;
         }
-        request.setAttribute(USER_ID, user.get().getId());
+        request.setAttribute(USER_ID, token.get().getUserId());
+        request.setAttribute(TOKEN_ID, token.get().getId());
         chain.doFilter(request, response);
     }
 

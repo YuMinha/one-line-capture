@@ -33,7 +33,9 @@ async function request(path, options = {}) {
   const body = await response.json().catch(() => null)
 
   if (!response.ok) {
-    if (response.status === 401) {
+    // 토큰이 죽었을 때(필터의 UNAUTHORIZED)만이다. 로그인에서 비밀번호가 틀린 401(LOGIN_FAILED)까지
+    // 여기 걸리면 지금 쓰던 토큰이 지워진다
+    if (response.status === 401 && (body?.error?.code ?? 'UNAUTHORIZED') === 'UNAUTHORIZED') {
       // 라우터가 토큰 화면으로 되돌린다. api.js는 화면을 모른다
       window.dispatchEvent(new CustomEvent('api:unauthorized'))
     }
@@ -49,6 +51,18 @@ export const api = {
   health: () => request('/health'),
 
   issueGuest: () => request('/auth/guest', { method: 'POST' }),
+
+  me: () => request('/auth/me'),
+
+  register: (body) => request('/auth/register', json(body)),
+
+  login: (body) => request('/auth/login', json(body)),
+
+  linkCode: () => request('/auth/link-code', { method: 'POST' }),
+
+  link: (code) => request('/auth/link', json({ code })),
+
+  logout: () => request('/auth/logout', { method: 'POST' }),
 
   get: (id) => request(`/captures/${id}`),
 

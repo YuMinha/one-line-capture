@@ -262,3 +262,31 @@ h1 { font-size: 1.1rem; font-weight: 600; margin: 0; opacity: 0.7; }
 
 footer { margin-top: 2.5rem; font-size: 0.8rem; text-align: center; }
 footer a { color: inherit; opacity: 0.45; }
+
+/* 계정 화면. 탐색 탭이 아니라 가끔 들르는 설정이라 입력 화면보다 한 톤 낮춘다 */
+.account { margin-bottom: 1.75rem; }
+.account h2 { font-size: 1rem; font-weight: 600; margin: 0 0 0.35rem; }
+.stack { display: grid; gap: 0.6rem; margin-bottom: 0.75rem; }
+.stack input {
+  font: inherit;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  background: transparent;
+  color: inherit;
+}
+.account .primary,
+.account .ghost {
+  font: inherit;
+  padding: 0.6rem 0.9rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+.account .primary { border: 1px solid #4a7dff; background: #4a7dff; color: #fff; }
+.account .ghost { border: 1px solid var(--line); background: transparent; color: inherit; }
+.account button:disabled { opacity: 0.5; cursor: default; }
+.link-code { display: flex; align-items: baseline; gap: 0.8rem; margin: 0.8rem 0 0; }
+.link-code strong { font: 600 1.6rem/1 ui-monospace, "SFMono-Regular", Consolas, monospace; letter-spacing: 0.08em; }
+.link-code span { font-size: 0.85rem; opacity: 0.6; }
+.lead.small { font-size: 0.8rem; }
+.lead a { color: inherit; }
