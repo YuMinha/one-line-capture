@@ -70,7 +70,7 @@ Docker의 학습 비용은 **서비스 개수에 비례**한다. 지금은 앱 1
 |---|---|
 | React / Vue | 화면 3개엔 과하다. 30%를 Docker에 몰아주기로 했다 |
 | PostgreSQL | MySQL을 이미 안다. DB 방언까지 새로 배우면 30%가 45%가 된다 |
-| Spring Security | v1 인증은 토큰 1개다. 필터 하나로 끝나는 걸 프레임워크로 감쌀 이유가 없다 |
+| Spring Security | 인증은 "토큰 → 사용자 id" 조회 하나다(게스트 모드 이후에도). 필터 하나로 끝나는 걸 프레임워크로 감쌀 이유가 없다 |
 | QueryDSL / MyBatis | JPA + 필요할 때 native query로 v1은 충분하다 |
 | Redis / 메시지 큐 | 캐시할 게 없고 비동기로 미룰 일이 없다 |
 | Kubernetes | 서버 1대에 컨테이너 3개다. 진심으로 필요 없다 |
@@ -121,6 +121,11 @@ com.example.capture
 ├─ summary/
 │   ├─ SummaryController.java
 │   └─ SummaryRepository.java    // 여기만 native SQL
+├─ user/
+│   ├─ AppUser.java              // 토큰 해시 + 발급/해시 계산
+│   ├─ AppUserRepository.java
+│   ├─ GuestController.java      // POST /api/v1/auth/guest
+│   └─ OwnerTokenSync.java       // 기동 시 주인(id=1) 토큰을 API_TOKEN에 맞춤
 └─ common/
     ├─ ApiTokenFilter.java
     ├─ GlobalExceptionHandler.java
@@ -215,7 +220,36 @@ CREATE TABLE link (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 ```
 
+```sql
+-- V5__add_app_user.sql (게스트 모드, 2026-09-30)
+CREATE TABLE app_user (
+    id          BIGINT      NOT NULL AUTO_INCREMENT,
+    token_hash  VARCHAR(64) NULL,                    -- SHA-256 hex. 원문 토큰은 저장하지 않는다
+    created_at  TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_app_user_token_hash (token_hash)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 주인. 토큰 해시는 앱이 기동할 때 API_TOKEN으로 채운다 (SQL은 환경변수를 모른다)
+INSERT INTO app_user (id) VALUES (1);
+
+-- 기존 행은 전부 주인 것이다. DEFAULT로 채운 뒤 DEFAULT를 떼서 앞으로는 반드시 명시하게 한다
+ALTER TABLE capture ADD COLUMN user_id BIGINT NOT NULL DEFAULT 1 AFTER id;
+ALTER TABLE capture ALTER COLUMN user_id DROP DEFAULT;
+ALTER TABLE capture
+    ADD KEY idx_capture_user_id (user_id, id),
+    ADD CONSTRAINT fk_capture_user FOREIGN KEY (user_id) REFERENCES app_user(id);
+```
+
+상세 테이블(`expense`/`todo`/`link`)에는 `user_id`를 넣지 않는다. 상세는 항상 capture를 통해
+도달하므로, **소유 검사는 capture 한 곳에서만** 한다. 중복 컬럼은 서로 어긋날 수 있다.
+
 ### 2.2 설계 결정 메모 (나중에 "왜 이렇게 했지?" 할 때 볼 것)
+
+- **남의 것은 403이 아니라 404.** 403은 "그 id가 존재한다"를 알려준다. 소유자가 아니면 없는 것과 같다.
+  그래서 조회는 전부 `where id = ? and user_id = ?` 한 번으로 한다 — 찾고 나서 비교하지 않는다.
+- **토큰은 SHA-256 해시로 저장.** DB가 새도 토큰 원문은 안 나간다. 비밀번호처럼 BCrypt를 안 쓰는 이유:
+  토큰은 사람이 고른 게 아니라 256비트 난수라 사전 공격이 불가능하고, 매 요청 조회해야 해서 느린 해시는 부담이다.
 
 - **`raw_text`를 지우지 않는다.** 파서를 고친 뒤 과거 데이터를 다시 파싱해볼 수 있다.
   이게 있으면 파서 개선이 안전해지고, 없으면 한 번 잘못 파싱된 건 영영 못 고친다.
@@ -290,7 +324,8 @@ v1은 데이터가 적어서 체감이 없지만, 습관을 들이는 차원에�
 ## 3. API 초안
 
 - Base URL: `/api/v1`
-- 인증: 모든 엔드포인트에 `X-API-Token: <토큰>` 헤더 필수 (`/api/v1/health` 제외)
+- 인증: 모든 엔드포인트에 `X-API-Token: <토큰>` 헤더 필수 (`/api/v1/health`, `/api/v1/auth/guest` 제외)
+- 모든 데이터는 **토큰의 주인 것만** 보인다. 남의 id는 404 (§2.2)
 - 시각 포맷: ISO-8601 UTC (`2026-08-25T04:30:00Z`)
 - 금액: 숫자 (문자열 아님)
 
@@ -299,6 +334,7 @@ v1은 데이터가 적어서 체감이 없지만, 습관을 들이는 차원에�
 | 메서드 | 경로 | 설명 |
 |---|---|---|
 | `GET` | `/api/v1/health` | 헬스체크. 인증 없음. compose healthcheck가 씀 |
+| `POST` | `/api/v1/auth/guest` | 게스트 토큰 발급. 인증 없음. `201 { "token": "..." }` — 원문은 이때 한 번만 나간다 |
 | `POST` | `/api/v1/captures` | **한 줄 저장 (핵심 API)** |
 | `POST` | `/api/v1/captures/preview` | 저장 없이 파싱 결과만 확인 (파서 개발·디버깅용) |
 | `GET` | `/api/v1/captures` | 목록 조회 (타입 필터, 커서 페이징) |
@@ -515,21 +551,24 @@ Clock clock() { return Clock.systemUTC(); }   // 테스트에서는 Clock.fixed(
 
 ---
 
-## 5. 인증 (v1)
+## 5. 인증 (v1 + 게스트 모드)
 
-`ApiTokenFilter` 하나. `/api/**` 요청에서 `X-API-Token` 헤더를 환경변수 `API_TOKEN`과 비교하고,
-다르면 401. `/api/v1/health`는 예외.
+`ApiTokenFilter` 하나는 그대로다. 바뀐 건 비교 대상뿐이다 — 환경변수 한 개가 아니라
+**`app_user.token_hash`에서 `SHA-256(헤더)`를 찾는다.** 찾으면 그 `id`를 요청 속성(`userId`)에 싣고,
+없으면 401. `/api/v1/health`, `/api/v1/auth/guest`는 예외.
 
-```java
-if (!MessageDigest.isEqual(
-        header.getBytes(UTF_8), expected.getBytes(UTF_8))) {   // 타이밍 공격 방지
-    response.setStatus(401);
-    return;
-}
+```
+X-API-Token ──SHA-256──▶ app_user.token_hash (UNIQUE 인덱스) ──▶ request attr "userId" ──▶ 컨트롤러
 ```
 
-토큰은 프론트에서 `localStorage`에 저장한다. **PWA를 처음 열 때 토큰 입력 화면 한 번**,
-이후에는 저장된 값을 헤더에 붙인다.
+- **게스트:** `POST /auth/guest`가 256비트 난수 토큰을 만들어 해시만 저장하고, 원문은 응답으로 한 번만 준다.
+- **주인(id=1):** 기동할 때 `OwnerTokenSync`가 `SHA-256(API_TOKEN)`으로 덮어쓴다.
+  그래서 재발급 절차가 전과 같다 — `.env`를 바꾸고 api를 재시작하면 옛 토큰은 즉시 401이다.
+- **타이밍 공격 대비(`MessageDigest.isEqual`)는 빠졌다.** 이제 비교는 DB 인덱스 조회이고,
+  조회 대상이 원문이 아니라 해시라서 응답 시간으로 알아낼 수 있는 건 "해시 앞자리"뿐이다. 해시의 앞자리로는 토큰을 역산할 수 없다.
+
+토큰은 프론트에서 `localStorage`에 저장한다. **처음 열 때 저장된 토큰이 없으면 자동으로 게스트 토큰을 받는다.**
+주인이 새 기기에서 쓰려면 `#/token` 화면에 `API_TOKEN`을 넣는다.
 
 > 이 방식의 한계는 정직하게 알아두자: XSS가 있으면 토큰이 털린다. 사용자가 나 하나이고
 > 외부 스크립트를 안 붙이므로 v1에선 감수한다. v2에서 다중 사용자로 가면 이 자리는
@@ -550,7 +589,7 @@ MYSQL_ROOT_PASSWORD=change-me-too
 
 # --- API ---
 SPRING_DATASOURCE_URL=jdbc:mysql://db:3306/capture?connectionTimeZone=UTC
-API_TOKEN=change-me-to-a-long-random-string
+API_TOKEN=change-me-to-a-long-random-string   # 주인(app_user id=1)의 토큰
 TZ=UTC
 
 # --- Web ---
