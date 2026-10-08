@@ -15,6 +15,7 @@ internal sealed class TrayContext : ApplicationContext
     private readonly DockForm dock;
     private readonly ToolStripMenuItem openItem = new();
     private readonly ToolStripMenuItem dockItem = new("메모칸 보이기") { CheckOnClick = true };
+    private readonly ToolStripMenuItem themeItem = new("메모칸 색");
     private readonly ToolStripMenuItem linkItem = new("계정 연결...");
     private readonly ToolStripMenuItem signOutItem = new("이 PC 연결 해제");
     private readonly ToolStripMenuItem autoStartItem = new("윈도우 시작 시 실행") { CheckOnClick = true };
@@ -35,7 +36,13 @@ internal sealed class TrayContext : ApplicationContext
         var exitItem = new ToolStripMenuItem("종료");
         exitItem.Click += (_, _) => ExitThread();
 
-        menu.Items.AddRange([openItem, webItem, dockItem, new ToolStripSeparator(), linkItem, signOutItem, autoStartItem, new ToolStripSeparator(), exitItem]);
+        foreach (var (value, label) in new[] { ("auto", "작업 표시줄 따라가기"), ("light", "밝게"), ("dark", "어둡게") })
+        {
+            var item = new ToolStripMenuItem(label) { Tag = value };
+            item.Click += (_, _) => { dock.SetTheme(value); RefreshMenu(); };
+            themeItem.DropDownItems.Add(item);
+        }
+        menu.Items.AddRange([openItem, webItem, dockItem, themeItem, new ToolStripSeparator(), linkItem, signOutItem, autoStartItem, new ToolStripSeparator(), exitItem]);
         menu.Opening += (_, _) => RefreshMenu();
 
         tray.Icon = AppIcon;
@@ -66,6 +73,7 @@ internal sealed class TrayContext : ApplicationContext
         signOutItem.Visible = token != null;
         autoStartItem.Checked = AutoStart.Enabled;
         dockItem.Checked = dock.Visible;
+        foreach (ToolStripMenuItem item in themeItem.DropDownItems) item.Checked = (string?)item.Tag == settings.Theme;
     }
 
     private void SetDockVisible(bool visible)

@@ -12,6 +12,9 @@ internal sealed class DockSettings
     public int? Y { get; set; }
     public bool Visible { get; set; } = true;
 
+    // auto: 작업 표시줄 색(윈도우 설정의 기본 모드)을 따라간다. light·dark는 고정
+    public string Theme { get; set; } = "auto";
+
     public static DockSettings Load()
     {
         try

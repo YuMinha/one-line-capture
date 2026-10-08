@@ -12,6 +12,8 @@ internal sealed class DockForm : Form
 
     private readonly TextBox input = new();
     private readonly Panel grip = new();
+    private readonly Panel holder = new();
+    private Color dots = Color.FromArgb(0xA0, 0xA8, 0xB4);
     private readonly System.Windows.Forms.Timer hintTimer = new() { Interval = 5000 };
     private readonly DockSettings settings;
     private readonly Func<string, Task<CaptureOutcome>> save;
@@ -36,7 +38,6 @@ internal sealed class DockForm : Form
         // 96dpi 기준으로 잡은 크기다. 150% 화면에서는 1.5배로 커진다
         AutoScaleDimensions = new SizeF(96F, 96F);
         AutoScaleMode = AutoScaleMode.Dpi;
-        BackColor = Color.White;
         ClientSize = new Size(320, 38);
         Padding = new Padding(2);
         ContextMenuStrip = menu;
@@ -44,16 +45,16 @@ internal sealed class DockForm : Form
         grip.Dock = DockStyle.Left;
         grip.Width = 14;
         grip.Cursor = Cursors.SizeAll;
-        grip.BackColor = Color.FromArgb(0xF3, 0xF5, 0xF9);
         grip.Paint += (_, e) =>
         {
-            using var brush = new SolidBrush(Color.FromArgb(0xA0, 0xA8, 0xB4));
+            using var brush = new SolidBrush(dots);
             for (var i = 0; i < 3; i++) e.Graphics.FillEllipse(brush, 5, 10 + i * 6, 3, 3);
         };
         grip.MouseDown += (_, e) => { if (e.Button == MouseButtons.Left) BeginDrag(); };
 
         // TextBox는 세로 가운데 정렬이 안 된다. 패널에 넣고 위 여백으로 맞춘다
-        var holder = new Panel { Dock = DockStyle.Fill, Padding = new Padding(8, 8, 8, 0), BackColor = Color.White };
+        holder.Dock = DockStyle.Fill;
+        holder.Padding = new Padding(8, 8, 8, 0);
         input.Dock = DockStyle.Fill;
         input.BorderStyle = BorderStyle.None;
         input.Font = new Font("Malgun Gothic", 11f);
@@ -75,6 +76,9 @@ internal sealed class DockForm : Form
             e.Graphics.DrawRectangle(pen, 1, 1, ClientSize.Width - 2, ClientSize.Height - 2);
         };
         Microsoft.Win32.SystemEvents.DisplaySettingsChanged += (_, _) => PlaceOnScreen();
+        // 윈도우 설정에서 밝게/어둡게를 바꾸면 바로 따라간다
+        Microsoft.Win32.SystemEvents.UserPreferenceChanged += (_, _) => ApplyTheme();
+        ApplyTheme();
         Load += (_, _) => PlaceOnScreen();
     }
 
@@ -116,6 +120,40 @@ internal sealed class DockForm : Form
     // 보이기만 하고 포커스는 뺏지 않는다. 글을 쓰던 창에서 커서가 튀어나오면 안 된다.
     // 단축키로 부를 때는 FocusInput이 직접 Activate한다
     protected override bool ShowWithoutActivation => true;
+
+    public void SetTheme(string theme)
+    {
+        settings.Theme = theme;
+        settings.Save();
+        ApplyTheme();
+    }
+
+    // 작업 표시줄 바로 위에 붙는 칸이라 작업 표시줄과 같은 색이어야 떠 보이지 않는다
+    private void ApplyTheme()
+    {
+        var dark = settings.Theme switch
+        {
+            "dark" => true,
+            "light" => false,
+            _ => TaskbarIsDark(),
+        };
+        var back = dark ? Color.FromArgb(0x20, 0x20, 0x20) : Color.White;
+        BackColor = back;
+        holder.BackColor = back;
+        input.BackColor = back;
+        input.ForeColor = dark ? Color.FromArgb(0xF0, 0xF0, 0xF0) : Color.FromArgb(0x1F, 0x23, 0x28);
+        grip.BackColor = dark ? Color.FromArgb(0x2C, 0x2C, 0x2C) : Color.FromArgb(0xF3, 0xF5, 0xF9);
+        dots = dark ? Color.FromArgb(0x80, 0x80, 0x80) : Color.FromArgb(0xA0, 0xA8, 0xB4);
+        grip.Invalidate();
+        Invalidate();
+    }
+
+    private static bool TaskbarIsDark()
+    {
+        using var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize");
+        // 값이 없으면(윈도우 10 초기 버전) 기본이 어두운 작업 표시줄이다
+        return key?.GetValue("SystemUsesLightTheme") is not int light || light == 0;
+    }
 
     public void SetLinked(bool value)
     {
