@@ -30,7 +30,8 @@ docker compose up -d --build
 
 DB와 API가 준비될 때까지 기다렸다가 돌아온다. 처음 한 번은 이미지를 받고 빌드하느라 몇 분 걸린다.
 
-브라우저에서 **http://localhost:8081** 을 열고, `.env`에 넣은 `API_TOKEN` 값을 입력하면 된다.
+브라우저에서 **http://localhost:8081** 을 열면 게스트 계정이 자동으로 생겨 바로 쓸 수 있다.
+주인 계정으로 쓰려면 아래쪽 링크 → "토큰 직접 입력"(`#/token`)에 `.env`의 `API_TOKEN` 값을 넣는다.
 
 정상인지 확인:
 
@@ -66,7 +67,7 @@ docker compose down -v   # 볼륨까지 삭제 (기록이 전부 사라진다)
 |---|---|
 | `MYSQL_DATABASE` / `MYSQL_USER` | DB 이름과 계정 |
 | `MYSQL_PASSWORD` / `MYSQL_ROOT_PASSWORD` | **반드시 바꾼다** |
-| `API_TOKEN` | 이 값을 아는 사람만 API를 쓸 수 있다. **길고 무작위로** |
+| `API_TOKEN` | 주인 계정의 토큰. 기동할 때 이 값으로 맞춰진다. **길고 무작위로** |
 | `SPRING_DATASOURCE_URL` | 앱을 로컬(IDE·`java -jar`)에서 띄울 때만 쓴다. compose로 띄운 api는 `db:3306`을 직접 받는다 |
 | `TEST_DATASOURCE_URL` | `./gradlew test` 전용 스키마. 개발용 DB를 건드리지 않는다 |
 | `VITE_API_BASE_URL` | 기본값 `/api/v1`. 상대경로라 CORS 설정이 필요 없다 |
@@ -76,12 +77,19 @@ docker compose down -v   # 볼륨까지 삭제 (기록이 전부 사라진다)
 
 ## API
 
-모든 경로에 `X-API-Token` 헤더가 필요하다. **`/health`만 예외.**
-시각은 ISO-8601 UTC, 금액은 숫자다.
+모든 경로에 `X-API-Token` 헤더가 필요하다. **예외는 `/health`와 토큰을 받으러 오는 `auth/guest`·`login`·`link` 세 개.**
+토큰은 기기마다 따로 발급되고, 그 토큰 주인의 데이터만 보인다(남의 id는 404). 시각은 ISO-8601 UTC, 금액은 숫자다.
 
 | 메서드 | 경로 | 설명 |
 |---|---|---|
 | `GET` | `/api/v1/health` | 헬스체크 (인증 없음) |
+| `POST` | `/api/v1/auth/guest` | 게스트 토큰 발급 (인증 없음). 처음 접속한 기기가 부른다 |
+| `POST` | `/api/v1/auth/register` | 지금 계정에 `{ loginId, email, password }`를 붙인다. 기록은 그대로 |
+| `POST` | `/api/v1/auth/login` | `{ loginId, password }` → 이 기기용 새 토큰 (인증 없음) |
+| `POST` | `/api/v1/auth/link-code` | 다른 기기 연결 코드 발급 (8자리, 5분, 1회용) |
+| `POST` | `/api/v1/auth/link` | `{ code }` → 이 기기용 새 토큰 (인증 없음). 앱은 이걸로 로그인한다 |
+| `POST` | `/api/v1/auth/logout` | 이 기기의 토큰만 지운다 |
+| `GET` | `/api/v1/auth/me` | `{ registered, loginId, email }` |
 | `POST` | `/api/v1/captures` | **한 줄 저장** |
 | `POST` | `/api/v1/captures/preview` | 저장 없이 파싱 결과만 |
 | `GET` | `/api/v1/captures` | 목록 (`type`, `cursor`, `size`, `done`) |
@@ -188,7 +196,7 @@ one-line-capture/
 - **시각** — 저장은 UTC, 화면은 KST, **파싱은 KST**. 셋을 섞으면 KST 새벽에 "내일 3시"가 15시간 어긋난다
 - **돈** — `BigDecimal` + `DECIMAL(12,2)`. `double`은 `0.1 + 0.2 != 0.3`이라 돈에 못 쓴다
 - **원문** — `raw_text`는 절대 지우거나 바꾸지 않는다. 파서를 고친 뒤 과거 데이터를 다시 파싱해볼 수 있다
-- **토큰 비교** — `equals()`는 다른 글자가 나오면 즉시 멈춰 비교 시간으로 값을 추측당한다. `MessageDigest.isEqual`을 쓴다
+- **토큰 저장** — DB에는 토큰의 SHA-256 해시만 둔다. DB가 새도 토큰 원문은 나가지 않고, 해시로 찾으므로 비교 시간으로 값을 추측할 수도 없다. 비밀번호는 PBKDF2
 - **N+1** — 목록은 상세 쪽에서 조회하며 `JOIN FETCH`. 5건 조회에 쿼리 1번인 것을 실측했다
 - **집계 인덱스** — `DATE_FORMAT(spent_at, ...)`으로 쓰면 인덱스를 못 탄다. 범위 조건으로 쓴다 (`EXPLAIN` 확인)
 
@@ -316,8 +324,9 @@ HTTPS는 나중에 붙여도 앱은 그대로 동작한다.
 
 [`docs/spec.md`](docs/spec.md) §5·§6에 "왜 안 만드는가"까지 적어뒀다.
 
-**미룬 것:** 다중 사용자 · 소셜 로그인 · 푸시 알림 · 통계 차트 · LLM 분류
-**안 만들 것:** 미분류함 · 저장 전 확인 화면 · 태그/폴더 · 카드 연동 · 첨부파일 · 네이티브 앱
+**만드는 중:** 안드로이드 앱(잠금화면 입력) · 윈도우 단축키 입력창 · 스토어 등록 — `docs/spec.md` §9
+**미룬 것:** 비밀번호 찾기 · 소셜 로그인 · 푸시 알림 · 통계 차트 · LLM 분류
+**안 만들 것:** 미분류함 · 저장 전 확인 화면 · 태그/폴더 · 카드 연동 · 첨부파일
 
 ---
 
