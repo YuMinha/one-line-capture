@@ -29,7 +29,14 @@ public class ExpenseRule implements ParseRule {
     private static final Pattern BARE_NUMBER = Pattern.compile(
             "(?<![0-9.,:/\\-])([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{3,})(?![0-9.,:/\\-]|\\s*[시분초월일년주개명번호층칸%])");
 
-    // 맨 숫자를 금액으로 볼지 판단할 때만 쓴다. 날짜·시각 표현이 있으면 할일일 가능성이 높다
+    // '원' 없이 단위로 끝나는 금액. "교통카드 5만", "점심 9천" 처럼 쓴다 (stack.md §4).
+    // 아라비아 숫자로 시작해야 한다. 한글 수사까지 받으면 '만나기', '천천히'가 금액이 된다.
+    // 단위 바로 뒤에 한글이 붙으면 '1만보', '3천명' 같은 수량이라 뺀다
+    private static final Pattern UNIT_WITHOUT_WON = Pattern.compile(
+            "(?<![0-9.,:/\\-])([0-9]+(?:\\.[0-9]+)?\\s*[만천](?:\\s*[0-9]+\\s*천)?)"
+                    + "(?![0-9가-힣]|\\s*[시분초월일년주개명번호층칸%])");
+
+    // '원' 없는 금액(단위 금액·맨 숫자)을 볼지 판단할 때만 쓴다. 날짜·시각 표현이 있으면 할일일 가능성이 높다
     private static final Pattern DATE_OR_TIME = Pattern.compile(
             "오늘|내일|모레|다음\\s*주|이번\\s*주|[월화수목금토일]요일|[0-9]+\\s*[시분월일년]");
 
@@ -37,7 +44,7 @@ public class ExpenseRule implements ParseRule {
     public Optional<ParsedCapture> tryParse(String raw, LocalDateTime now) {
         return find(WITH_WON, raw)
                 .or(() -> find(CURRENCY_SIGN, raw))
-                .or(() -> bareNumber(raw))
+                .or(() -> withoutWon(raw))
                 .map(found -> new ParsedCapture.Expense(
                         found.amount(),
                         // 지출일은 입력일이다. 텍스트에서 날짜를 읽는 건 v1 범위 밖 (spec.md §7)
@@ -62,12 +69,12 @@ public class ExpenseRule implements ParseRule {
         return Optional.empty();
     }
 
-    private Optional<Found> bareNumber(String raw) {
-        // "오늘 100 계단"을 100원으로 읽으면 안 된다. 단위가 없으면 근거가 약하므로 물러선다
+    private Optional<Found> withoutWon(String raw) {
+        // "오늘 100 계단"을 100원으로 읽으면 안 된다. '원'이 없으면 근거가 약하므로 물러선다
         if (DATE_OR_TIME.matcher(raw).find()) {
             return Optional.empty();
         }
-        return find(BARE_NUMBER, raw);
+        return find(UNIT_WITHOUT_WON, raw).or(() -> find(BARE_NUMBER, raw));
     }
 
     private String merchant(String raw, int start, int end) {
