@@ -1,4 +1,4 @@
-import { currentMonth, dayLabel, describe as describeItem, formatWon, fromKstInput, monthLabel, shiftMonth, toKst, toKstInput, typeLabel } from '../src/format.js'
+import { currentMonth, dayLabel, describe as describeItem, formatWon, fromKstInput, monthLabel, savedMessage, shiftMonth, toKst, toKstInput, typeLabel } from '../src/format.js'
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 
@@ -87,4 +87,10 @@ test('이번 달은 KST 기준이다', () => {
 
 test('금액은 천단위 콤마와 원을 붙인다', () => {
   assert.equal(formatWon(412500), '412,500원')
+})
+
+test('저장 문구는 세 타입 모두 조사 \'로\'를 쓴다', () => {
+  assert.equal(savedMessage('EXPENSE'), '지출로 저장됨')
+  assert.equal(savedMessage('TODO'), '할일로 저장됨')
+  assert.equal(savedMessage('LINK'), '링크로 저장됨')
 })

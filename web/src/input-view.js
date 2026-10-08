@@ -1,6 +1,6 @@
 import { api } from './api.js'
 import { itemElement } from './item.js'
-import { typeLabel } from './format.js'
+import { savedMessage } from './format.js'
 import { toastError } from './toast.js'
 
 const RECENT_LIMIT = 3
@@ -37,7 +37,7 @@ export function renderInput(app) {
       const saved = await api.create(text)
       recent = [saved, ...recent].slice(0, RECENT_LIMIT)
       renderRecent()
-      setStatus(`${typeLabel(saved.type)}으로 저장됨`, 'ok')
+      setStatus(savedMessage(saved.type), 'ok')
     } catch (error) {
       // 사용자가 친 글자를 잃지 않는 게 어떤 에러 메시지보다 중요하다
       input.value = text
