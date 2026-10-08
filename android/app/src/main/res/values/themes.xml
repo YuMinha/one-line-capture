@@ -3,8 +3,42 @@
     <style name="AppTheme" parent="@android:style/Theme.Material.Light.NoActionBar">
         <item name="android:colorAccent">@color/accent</item>
         <item name="android:colorPrimary">@color/accent</item>
-        <item name="android:statusBarColor">#FFFFFF</item>
+        <item name="android:statusBarColor">@color/page</item>
+        <item name="android:windowBackground">@color/page</item>
         <item name="android:windowLightStatusBar">true</item>
+    </style>
+
+    <!-- 웹과 같은 모양: 둥근 모서리, 파란 주 버튼, 흰 보조 버튼 -->
+    <style name="Input">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:minHeight">52dp</item>
+        <item name="android:background">@drawable/input_bg</item>
+        <item name="android:paddingStart">16dp</item>
+        <item name="android:paddingEnd">16dp</item>
+        <item name="android:textColor">@color/text</item>
+        <item name="android:textColorHint">#FF9AA4AE</item>
+        <item name="android:textSize">17sp</item>
+        <item name="android:singleLine">true</item>
+        <item name="android:imeOptions">actionDone</item>
+        <item name="android:importantForAutofill">no</item>
+    </style>
+
+    <style name="PrimaryButton">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">52dp</item>
+        <item name="android:background">@drawable/btn_primary</item>
+        <item name="android:stateListAnimator">@null</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textColor">#FFFFFFFF</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="SecondaryButton" parent="PrimaryButton">
+        <item name="android:background">@drawable/btn_secondary</item>
+        <item name="android:textColor">@color/text</item>
+        <item name="android:textStyle">normal</item>
     </style>
 
     <style name="QuickTheme" parent="@android:style/Theme.Material.Light.Dialog.NoActionBar">

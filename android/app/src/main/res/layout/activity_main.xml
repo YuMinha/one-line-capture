@@ -8,133 +8,174 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="20dp">
+        android:paddingStart="20dp"
+        android:paddingTop="24dp"
+        android:paddingEnd="20dp"
+        android:paddingBottom="24dp">
 
-        <TextView
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/app_name"
-            android:textColor="@color/text"
-            android:textSize="22sp"
-            android:textStyle="bold" />
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
 
+            <ImageView
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:contentDescription="@null"
+                android:src="@mipmap/ic_launcher" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:text="@string/app_name"
+                android:textColor="@color/text"
+                android:textSize="22sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- 연결 전 -->
         <LinearLayout
             android:id="@+id/link_panel"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:orientation="vertical">
+            android:layout_marginTop="24dp"
+            android:background="@drawable/card_bg"
+            android:orientation="vertical"
+            android:padding="18dp">
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:text="@string/link_title"
+                android:textColor="@color/text"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:lineSpacingExtra="3dp"
                 android:text="@string/link_help"
                 android:textColor="@color/muted"
-                android:textSize="15sp" />
+                android:textSize="14sp" />
 
             <Button
                 android:id="@+id/get_code_button"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
+                style="@style/SecondaryButton"
+                android:layout_marginTop="16dp"
                 android:text="@string/get_code" />
 
             <EditText
-                android:importantForAutofill="no"
                 android:id="@+id/code_input"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                style="@style/Input"
+                android:importantForAutofill="no"
                 android:layout_marginTop="12dp"
+                android:fontFamily="monospace"
+                android:gravity="center"
                 android:hint="@string/code_hint"
-                android:imeOptions="actionDone"
                 android:inputType="textCapCharacters|textNoSuggestions"
+                android:letterSpacing="0.1"
                 android:maxLength="12"
-                android:singleLine="true"
                 android:textSize="20sp" />
 
             <Button
                 android:id="@+id/link_button"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:backgroundTint="@color/accent"
-                android:text="@string/link"
-                android:textColor="#FFFFFF" />
+                style="@style/PrimaryButton"
+                android:layout_marginTop="10dp"
+                android:text="@string/link" />
 
             <TextView
                 android:id="@+id/link_status"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:textColor="@color/error" />
+                android:textColor="@color/error"
+                android:textSize="14sp" />
         </LinearLayout>
 
+        <!-- 연결 후 -->
         <LinearLayout
             android:id="@+id/capture_panel"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="24dp"
             android:orientation="vertical"
             android:visibility="gone">
 
             <EditText
-                android:importantForAutofill="no"
                 android:id="@+id/input"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                style="@style/Input"
+                android:importantForAutofill="no"
                 android:hint="@string/input_hint"
-                android:imeOptions="actionDone"
                 android:inputType="text"
-                android:maxLength="500"
-                android:singleLine="true"
-                android:textSize="18sp" />
+                android:maxLength="500" />
 
             <TextView
                 android:id="@+id/status"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
+                android:paddingStart="4dp"
+                android:paddingEnd="4dp"
                 android:textColor="@color/ok"
-                android:textSize="15sp" />
+                android:textSize="14sp" />
 
             <TextView
                 android:id="@+id/recent"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
-                android:lineSpacingExtra="6dp"
-                android:textColor="@color/muted"
+                android:background="@drawable/card_bg"
+                android:lineSpacingExtra="8dp"
+                android:padding="16dp"
+                android:textColor="@color/text"
                 android:textSize="14sp" />
 
-            <Switch
-                android:id="@+id/quick_switch"
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
-                android:text="@string/quick_switch"
-                android:textSize="16sp" />
+                android:layout_marginTop="20dp"
+                android:background="@drawable/card_bg"
+                android:orientation="vertical"
+                android:padding="16dp">
 
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:text="@string/quick_help"
-                android:textColor="@color/muted"
-                android:textSize="13sp" />
+                <Switch
+                    android:id="@+id/quick_switch"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/quick_switch"
+                    android:textColor="@color/text"
+                    android:textSize="16sp" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:lineSpacingExtra="3dp"
+                    android:text="@string/quick_help"
+                    android:textColor="@color/muted"
+                    android:textSize="13sp" />
+            </LinearLayout>
 
             <Button
                 android:id="@+id/open_web_button"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
+                style="@style/SecondaryButton"
+                android:layout_marginTop="20dp"
                 android:text="@string/open_web" />
 
-            <Button
+            <TextView
                 android:id="@+id/sign_out_button"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="48dp"
                 android:layout_marginTop="8dp"
-                android:text="@string/sign_out" />
+                android:background="?android:attr/selectableItemBackground"
+                android:gravity="center"
+                android:text="@string/sign_out"
+                android:textColor="@color/muted"
+                android:textSize="14sp" />
         </LinearLayout>
     </LinearLayout>
 </ScrollView>

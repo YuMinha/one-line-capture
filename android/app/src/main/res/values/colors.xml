@@ -6,4 +6,6 @@
     <color name="muted">#6E7781</color>
     <color name="ok">#1A7F37</color>
     <color name="error">#CF222E</color>
+    <color name="line">#D8DEE4</color>
+    <color name="page">#F6F8FA</color>
 </resources>

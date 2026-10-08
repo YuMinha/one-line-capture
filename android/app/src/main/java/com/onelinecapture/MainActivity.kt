@@ -52,7 +52,7 @@ class MainActivity : Activity() {
 
         input.setOnEditorActionListener { _, actionId, event -> isDone(actionId, event).also { if (it) save() } }
         findViewById<Button>(R.id.open_web_button).setOnClickListener { openWeb("/#/list") }
-        findViewById<Button>(R.id.sign_out_button).setOnClickListener { signOut() }
+        findViewById<View>(R.id.sign_out_button).setOnClickListener { signOut() }
         quickSwitch.setOnCheckedChangeListener { _, checked -> if (!rendering) setQuickNotification(checked) }
     }
 
