@@ -28,6 +28,8 @@ class MainActivity : Activity() {
     private lateinit var status: TextView
     private lateinit var recent: TextView
     private lateinit var quickSwitch: Switch
+    // 화면을 다시 그리며 스위치 값을 맞출 때는 사용자가 누른 게 아니다. 그때 권한 요청이 다시 뜨면 안 된다
+    private var rendering = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -51,7 +53,7 @@ class MainActivity : Activity() {
         input.setOnEditorActionListener { _, actionId, event -> isDone(actionId, event).also { if (it) save() } }
         findViewById<Button>(R.id.open_web_button).setOnClickListener { openWeb("/#/list") }
         findViewById<Button>(R.id.sign_out_button).setOnClickListener { signOut() }
-        quickSwitch.setOnCheckedChangeListener { _, checked -> setQuickNotification(checked) }
+        quickSwitch.setOnCheckedChangeListener { _, checked -> if (!rendering) setQuickNotification(checked) }
     }
 
     override fun onResume() {
@@ -64,7 +66,9 @@ class MainActivity : Activity() {
         linkPanel.visibility = if (linked) View.GONE else View.VISIBLE
         capturePanel.visibility = if (linked) View.VISIBLE else View.GONE
         recent.text = store.recent.joinToString("\n")
+        rendering = true
         quickSwitch.isChecked = store.quickNotification
+        rendering = false
         if (linked) input.requestFocus() else codeInput.requestFocus()
     }
 
@@ -80,6 +84,8 @@ class MainActivity : Activity() {
                 result.onSuccess { token ->
                     store.token = token
                     CaptureWidget.refresh(this)
+                    // 해제 전에 켜 둔 알림창 입력을 다시 띄운다. 스위치만 켜져 있고 알림이 없으면 고장 난 것처럼 보인다
+                    QuickNotification.restore(this)
                     codeInput.text.clear()
                     linkStatus.text = ""
                     status.text = "연결했습니다. 한 줄을 던져 보세요"

@@ -17,8 +17,10 @@ internal sealed class DockForm : Form
     private readonly Func<string, Task<CaptureOutcome>> save;
     private readonly Action requestLink;
     private Color border = Accent;
+    private readonly System.Windows.Forms.Timer fullscreenTimer = new() { Interval = 1500 };
     private bool saving;
     private bool linked;
+    private bool hiddenForFullscreen;
 
     public DockForm(DockSettings settings, Func<string, Task<CaptureOutcome>> save, Action requestLink, ContextMenuStrip menu)
     {
@@ -65,6 +67,8 @@ internal sealed class DockForm : Form
         Controls.Add(grip);
 
         hintTimer.Tick += (_, _) => { hintTimer.Stop(); ResetHint(); };
+        fullscreenTimer.Tick += (_, _) => FollowFullscreen();
+        fullscreenTimer.Start();
         Paint += (_, e) =>
         {
             using var pen = new Pen(border, 2);
@@ -92,6 +96,26 @@ internal sealed class DockForm : Form
         var round = 2;
         _ = DwmSetWindowAttribute(Handle, 33, ref round, sizeof(int));
     }
+
+    // 늘 맨 위에 있으면 전체 화면 영상·게임·발표 위에도 뜬다. 그동안만 숨었다가 끝나면 돌아온다
+    private void FollowFullscreen()
+    {
+        var busy = SHQueryUserNotificationState(out var state) == 0 && state is 2 or 3 or 4;
+        if (busy && Visible && !ContainsFocus)
+        {
+            hiddenForFullscreen = true;
+            Hide();
+        }
+        else if (!busy && hiddenForFullscreen)
+        {
+            hiddenForFullscreen = false;
+            if (settings.Visible) Show();
+        }
+    }
+
+    // 보이기만 하고 포커스는 뺏지 않는다. 글을 쓰던 창에서 커서가 튀어나오면 안 된다.
+    // 단축키로 부를 때는 FocusInput이 직접 Activate한다
+    protected override bool ShowWithoutActivation => true;
 
     public void SetLinked(bool value)
     {
@@ -194,6 +218,10 @@ internal sealed class DockForm : Form
 
     [DllImport("user32.dll")]
     private static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
+
+    // 2: 전체 화면 앱, 3: 전체 화면 D3D(게임), 4: 프레젠테이션 모드
+    [DllImport("shell32.dll")]
+    private static extern int SHQueryUserNotificationState(out int state);
 
     [DllImport("dwmapi.dll")]
     private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);

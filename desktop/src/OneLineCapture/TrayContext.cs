@@ -55,7 +55,7 @@ internal sealed class TrayContext : ApplicationContext
         }
 
         if (token == null) ShowLink();
-        else Notify($"{hotKey.Combination ?? "트레이 아이콘"}으로 한 줄을 저장합니다.");
+        else Notify(ReadyMessage("한 줄 캡처가 켜졌습니다."));
     }
 
     private void RefreshMenu()
@@ -91,7 +91,7 @@ internal sealed class TrayContext : ApplicationContext
         AutoStart.Enabled = true;
         dock.SetLinked(true);
         RefreshMenu();
-        Notify($"연결했습니다. {hotKey.Combination ?? "트레이 아이콘"}으로 한 줄을 저장합니다.");
+        Notify(ReadyMessage("연결했습니다."));
     }
 
     private async Task<CaptureOutcome> SaveAsync(string text)
@@ -131,6 +131,12 @@ internal sealed class TrayContext : ApplicationContext
         }
         Notify("이 PC의 연결을 해제했습니다.");
     }
+
+    // 조합 이름 뒤에 조사를 붙이지 않는다. "Space으로"처럼 받침이 안 맞는다
+    private string ReadyMessage(string head) =>
+        hotKey.Combination == null
+            ? $"{head} 작업 표시줄 위 메모칸에 바로 입력하세요."
+            : $"{head} 메모칸에 바로 입력하거나, 어디서든 {hotKey.Combination} 키를 누르세요.";
 
     private void Notify(string message) => tray.ShowBalloonTip(3000, "한 줄 캡처", message, ToolTipIcon.None);
 
