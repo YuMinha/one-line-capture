@@ -11,8 +11,10 @@ internal sealed class TrayContext : ApplicationContext
     private readonly CaptureApi api = CaptureApi.Create();
     private readonly NotifyIcon tray = new();
     private readonly HotKey hotKey = new();
-    private readonly CaptureForm captureForm;
+    private readonly DockSettings settings = DockSettings.Load();
+    private readonly DockForm dock;
     private readonly ToolStripMenuItem openItem = new();
+    private readonly ToolStripMenuItem dockItem = new("메모칸 보이기") { CheckOnClick = true };
     private readonly ToolStripMenuItem linkItem = new("계정 연결...");
     private readonly ToolStripMenuItem signOutItem = new("이 PC 연결 해제");
     private readonly ToolStripMenuItem autoStartItem = new("윈도우 시작 시 실행") { CheckOnClick = true };
@@ -20,19 +22,20 @@ internal sealed class TrayContext : ApplicationContext
 
     public TrayContext()
     {
-        captureForm = new CaptureForm(SaveAsync) { Icon = AppIcon };
+        var menu = new ContextMenuStrip();
+        dock = new DockForm(settings, SaveAsync, ShowLink, menu) { Icon = AppIcon };
 
         openItem.Click += (_, _) => OpenCapture();
         linkItem.Click += (_, _) => ShowLink();
         signOutItem.Click += async (_, _) => await SignOutAsync();
         autoStartItem.Click += (_, _) => AutoStart.Enabled = autoStartItem.Checked;
+        dockItem.Click += (_, _) => SetDockVisible(dockItem.Checked);
         var webItem = new ToolStripMenuItem("목록·요약 보기 (웹)");
         webItem.Click += (_, _) => Process.Start(new ProcessStartInfo($"{CaptureApi.BaseUrl}/#/list") { UseShellExecute = true });
         var exitItem = new ToolStripMenuItem("종료");
         exitItem.Click += (_, _) => ExitThread();
 
-        var menu = new ContextMenuStrip();
-        menu.Items.AddRange([openItem, webItem, new ToolStripSeparator(), linkItem, signOutItem, autoStartItem, new ToolStripSeparator(), exitItem]);
+        menu.Items.AddRange([openItem, webItem, dockItem, new ToolStripSeparator(), linkItem, signOutItem, autoStartItem, new ToolStripSeparator(), exitItem]);
         menu.Opening += (_, _) => RefreshMenu();
 
         tray.Icon = AppIcon;
@@ -42,6 +45,8 @@ internal sealed class TrayContext : ApplicationContext
         tray.MouseClick += (_, e) => { if (e.Button == MouseButtons.Left) OpenCapture(); };
 
         hotKey.Pressed += OpenCapture;
+        dock.SetLinked(token != null);
+        if (settings.Visible) dock.Show();
         RefreshMenu();
 
         if (hotKey.Combination == null)
@@ -60,12 +65,20 @@ internal sealed class TrayContext : ApplicationContext
         linkItem.Visible = token == null;
         signOutItem.Visible = token != null;
         autoStartItem.Checked = AutoStart.Enabled;
+        dockItem.Checked = dock.Visible;
+    }
+
+    private void SetDockVisible(bool visible)
+    {
+        settings.Visible = visible;
+        settings.Save();
+        if (visible) dock.Show(); else dock.Hide();
     }
 
     private void OpenCapture()
     {
         if (token == null) ShowLink();
-        else captureForm.Popup();
+        else dock.FocusInput();
     }
 
     private void ShowLink()
@@ -76,6 +89,7 @@ internal sealed class TrayContext : ApplicationContext
         TokenStore.Save(token);
         // 처음 연결할 때 자동 실행을 켠다. 재부팅 뒤에 단축키가 안 먹으면 앱이 고장 난 것처럼 보인다
         AutoStart.Enabled = true;
+        dock.SetLinked(true);
         RefreshMenu();
         Notify($"연결했습니다. {hotKey.Combination ?? "트레이 아이콘"}으로 한 줄을 저장합니다.");
     }
@@ -85,8 +99,8 @@ internal sealed class TrayContext : ApplicationContext
         if (token == null) return new CaptureOutcome(false, "먼저 계정을 연결해 주세요");
         try
         {
+            // 결과는 메모칸 안에 보인다. 매번 알림까지 띄우면 시끄럽다
             var message = CaptureText.Saved(await api.CreateAsync(token, text));
-            Notify(message);
             return new CaptureOutcome(true, message);
         }
         catch (ApiException e)
@@ -96,6 +110,7 @@ internal sealed class TrayContext : ApplicationContext
                 // 웹에서 이 PC를 로그아웃했거나 토큰이 사라졌다. 다시 연결하게 한다
                 token = null;
                 TokenStore.Clear();
+                dock.SetLinked(false);
                 RefreshMenu();
             }
             return new CaptureOutcome(false, e.Message);
@@ -107,6 +122,7 @@ internal sealed class TrayContext : ApplicationContext
         var old = token;
         token = null;
         TokenStore.Clear();
+        dock.SetLinked(false);
         RefreshMenu();
         // 서버에서 못 지워도 이 PC에서는 나간다
         if (old != null)
@@ -123,7 +139,7 @@ internal sealed class TrayContext : ApplicationContext
         tray.Visible = false;
         hotKey.Dispose();
         tray.Dispose();
-        captureForm.Dispose();
+        dock.Dispose();
         base.ExitThreadCore();
     }
 
