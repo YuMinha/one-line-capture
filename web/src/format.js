@@ -8,6 +8,11 @@ export function typeLabel(type) {
   return TYPE_LABEL[type] ?? type
 }
 
+// 세 라벨이 모두 받침이 없거나 ㄹ 받침이라 '으로'가 아니라 '로'다. 라벨이 늘면 여기서 받침을 봐야 한다
+export function savedMessage(type) {
+  return `${typeLabel(type)}로 저장됨`
+}
+
 // 서버는 UTC로 준다. 화면에 그릴 때만 KST로 바꾼다 (stack.md §2.2)
 export function toKst(isoUtc) {
   return new Date(isoUtc).toLocaleString('ko-KR', {
