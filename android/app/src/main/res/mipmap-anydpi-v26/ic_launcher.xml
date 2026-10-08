@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 적응형 아이콘: 기종마다 원·물방울·사각형으로 잘린다. 그림은 가운데 66% 안에 둔다.
+     monochrome은 안드로이드 13 테마 아이콘(배경색에 맞춰 단색으로 칠함)용이다 -->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@color/icon_bg" />
+    <foreground android:drawable="@drawable/ic_launcher_foreground" />
+    <monochrome android:drawable="@drawable/ic_launcher_monochrome" />
+</adaptive-icon>

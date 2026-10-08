@@ -1,6 +1,6 @@
 // 앱 셸만 캐시한다. 오프라인 쓰기 큐는 v1에서 다루지 않는다 (spec.md §6)
-const CACHE = 'capture-shell-v3'
-const SHELL = ['/', '/index.html', '/manifest.webmanifest', '/icon-192.png', '/icon-512.png']
+const CACHE = 'capture-shell-v4'
+const SHELL = ['/', '/index.html', '/manifest.webmanifest', '/icon-192.png', '/icon-512.png', '/icon-maskable-512.png']
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(SHELL)))
