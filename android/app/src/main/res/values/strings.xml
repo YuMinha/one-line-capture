@@ -10,7 +10,9 @@
     <string name="open_web">목록·요약 보기 (웹)</string>
     <string name="sign_out">이 기기 연결 해제</string>
     <string name="widget_hint">한 줄 던지기…</string>
-    <string name="widget_description">홈 화면에서 바로 한 줄을 저장합니다</string>
+    <string name="widget_description">입력칸과 방금 저장한 3개</string>
+    <string name="widget_small_description">입력칸 한 줄만</string>
+    <string name="widget_small_label">한 줄 캡처 (작게)</string>
     <string name="tile_label">한 줄 캡처</string>
     <string name="quick_switch">알림창·잠금화면에서 바로 입력</string>
     <string name="quick_help">잠금화면과 알림창에 \"한 줄 입력\" 칸이 늘 떠 있습니다. 홈 화면을 길게 눌러 위젯에서 한 줄 캡처를 추가하거나, 상단바 편집에서 \"한 줄 캡처\" 타일을 넣어도 됩니다.</string>
