@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">한 줄 캡처</string>
+    <string name="link_help">웹(one-line.duckdns.org)의 계정 화면에서 \"코드 받기\"를 누르면 8자리 코드가 나옵니다. 그 코드를 아래에 넣으면 웹과 같은 기록에 저장됩니다.</string>
+    <string name="get_code">웹에서 코드 받기</string>
+    <string name="code_hint">연결 코드 (예: K7QM-3XPD)</string>
+    <string name="link">연결</string>
+    <string name="input_hint">점심 9000원</string>
+    <string name="open_web">목록·요약 보기 (웹)</string>
+    <string name="sign_out">이 기기 연결 해제</string>
+</resources>

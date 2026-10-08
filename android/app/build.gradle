@@ -1,0 +1,38 @@
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+}
+
+android {
+    namespace 'com.onelinecapture'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.onelinecapture'
+        // 26: 알림 채널이 생긴 버전. 그 아래는 알림창 입력을 따로 만들어야 해서 버린다 (국내 점유율 1% 미만)
+        minSdk 26
+        targetSdk 35
+        versionCode 1
+        versionName '1.0.0'
+        // 서버 주소는 여기 한 곳에만 둔다 (stack.md §8)
+        buildConfigField 'String', 'BASE_URL', '"https://one-line.duckdns.org"'
+    }
+
+    buildFeatures {
+        buildConfig true
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+}
+
+dependencies {
+    // 안드로이드에 org.json이 들어 있지만 로컬 단위 테스트(JVM)에는 빈 껍데기라 진짜 구현을 넣는다
+    testImplementation 'org.json:json:20240303'
+    testImplementation 'junit:junit:4.13.2'
+}
