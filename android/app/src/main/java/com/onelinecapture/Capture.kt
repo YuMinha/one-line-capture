@@ -16,23 +16,25 @@ object Capture {
 
     // 네트워크는 메인 스레드에서 못 부른다. 저장 한 번에 코루틴 라이브러리까지 들일 일은 아니라 스레드 하나를 쓴다
     fun save(context: Context, text: String, done: (Result) -> Unit) {
-        val store = Store(context)
         Thread {
-            val result = saveBlocking(store, text)
+            val result = saveBlocking(context, text)
             main.post { done(result) }
         }.start()
     }
 
-    fun saveBlocking(store: Store, text: String): Result {
+    fun saveBlocking(context: Context, text: String): Result {
+        val store = Store(context)
         val token = store.token ?: return Result.Failed("먼저 계정을 연결해 주세요", signedOut = true)
         return try {
             val message = CaptureText.saved(CaptureApi.create(token, text))
             store.addRecent(message)
+            CaptureWidget.refresh(context)
             Result.Saved(message)
         } catch (e: ApiException) {
             if (e.tokenRejected) {
                 // 웹에서 이 기기를 로그아웃했거나 토큰이 사라졌다. 다시 연결하게 한다
                 store.signOut()
+                CaptureWidget.refresh(context)
             }
             Result.Failed(e.message ?: "저장하지 못했습니다", e.tokenRejected)
         }

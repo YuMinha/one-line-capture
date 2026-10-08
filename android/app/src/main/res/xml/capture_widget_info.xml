@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- keyguard: 잠금화면 위젯을 허용하는 기기(일부 태블릿·제조사)에서만 잠금화면에도 올라간다 -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:description="@string/widget_description"
+    android:initialKeyguardLayout="@layout/widget_capture"
+    android:initialLayout="@layout/widget_capture"
+    android:minWidth="250dp"
+    android:minHeight="60dp"
+    android:minResizeWidth="180dp"
+    android:minResizeHeight="60dp"
+    android:previewLayout="@layout/widget_capture"
+    android:resizeMode="horizontal|vertical"
+    android:targetCellWidth="4"
+    android:targetCellHeight="2"
+    android:updatePeriodMillis="0"
+    android:widgetCategory="home_screen|keyguard" />

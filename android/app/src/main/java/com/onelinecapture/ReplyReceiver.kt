@@ -20,7 +20,7 @@ class ReplyReceiver : BroadcastReceiver() {
         val pending = goAsync()
         Thread {
             try {
-                when (val result = Capture.saveBlocking(Store(context), text)) {
+                when (val result = Capture.saveBlocking(context, text)) {
                     is Capture.Result.Saved -> QuickNotification.show(context, result.message)
                     // 오프라인 쓰기 큐는 없다 (spec.md §6). 원문을 알림에 남겨 다시 칠 수 있게 한다
                     is Capture.Result.Failed ->

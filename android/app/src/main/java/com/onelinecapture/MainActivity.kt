@@ -79,6 +79,7 @@ class MainActivity : Activity() {
                 linkButton.isEnabled = true
                 result.onSuccess { token ->
                     store.token = token
+                    CaptureWidget.refresh(this)
                     codeInput.text.clear()
                     linkStatus.text = ""
                     status.text = "연결했습니다. 한 줄을 던져 보세요"
@@ -114,6 +115,7 @@ class MainActivity : Activity() {
         val token = store.token
         store.signOut()
         QuickNotification.cancel(this)
+        CaptureWidget.refresh(this)
         // 서버에서 못 지워도 이 기기에서는 나간다. 로그아웃이 실패해서 못 나가는 일은 없어야 한다
         if (token != null) Thread { runCatching { CaptureApi.logout(token) } }.start()
         status.text = ""
