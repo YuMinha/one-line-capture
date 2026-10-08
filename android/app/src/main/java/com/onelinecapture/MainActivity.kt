@@ -1,6 +1,9 @@
 package com.onelinecapture
 
+import android.Manifest
 import android.app.Activity
+import android.content.pm.PackageManager
+import android.os.Build
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -9,6 +12,7 @@ import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.widget.Button
 import android.widget.EditText
+import android.widget.Switch
 import android.widget.TextView
 
 // 화면은 두 상태뿐이다: 연결 전(코드 입력)과 연결 후(한 줄 입력). 목록·요약은 웹을 연다 (spec.md §9)
@@ -23,6 +27,7 @@ class MainActivity : Activity() {
     private lateinit var input: EditText
     private lateinit var status: TextView
     private lateinit var recent: TextView
+    private lateinit var quickSwitch: Switch
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -37,6 +42,7 @@ class MainActivity : Activity() {
         input = findViewById(R.id.input)
         status = findViewById(R.id.status)
         recent = findViewById(R.id.recent)
+        quickSwitch = findViewById(R.id.quick_switch)
 
         linkButton.setOnClickListener { link() }
         codeInput.setOnEditorActionListener { _, actionId, event -> isDone(actionId, event).also { if (it) link() } }
@@ -45,6 +51,7 @@ class MainActivity : Activity() {
         input.setOnEditorActionListener { _, actionId, event -> isDone(actionId, event).also { if (it) save() } }
         findViewById<Button>(R.id.open_web_button).setOnClickListener { openWeb("/#/list") }
         findViewById<Button>(R.id.sign_out_button).setOnClickListener { signOut() }
+        quickSwitch.setOnCheckedChangeListener { _, checked -> setQuickNotification(checked) }
     }
 
     override fun onResume() {
@@ -57,6 +64,7 @@ class MainActivity : Activity() {
         linkPanel.visibility = if (linked) View.GONE else View.VISIBLE
         capturePanel.visibility = if (linked) View.VISIBLE else View.GONE
         recent.text = store.recent.joinToString("\n")
+        quickSwitch.isChecked = store.quickNotification
         if (linked) input.requestFocus() else codeInput.requestFocus()
     }
 
@@ -105,10 +113,35 @@ class MainActivity : Activity() {
     private fun signOut() {
         val token = store.token
         store.signOut()
+        QuickNotification.cancel(this)
         // 서버에서 못 지워도 이 기기에서는 나간다. 로그아웃이 실패해서 못 나가는 일은 없어야 한다
         if (token != null) Thread { runCatching { CaptureApi.logout(token) } }.start()
         status.text = ""
         render()
+    }
+
+    private fun setQuickNotification(on: Boolean) {
+        store.quickNotification = on
+        // 13부터는 알림을 띄우려면 사용자 허락이 필요하다. 거절하면 스위치만 켜지고 알림은 안 뜬다
+        if (on && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), REQUEST_NOTIFICATION)
+            return
+        }
+        QuickNotification.restore(this)
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode != REQUEST_NOTIFICATION) return
+        if (grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED) {
+            QuickNotification.restore(this)
+        } else {
+            store.quickNotification = false
+            quickSwitch.isChecked = false
+            status.text = "알림 권한이 없으면 알림창 입력을 쓸 수 없습니다"
+        }
     }
 
     private fun openWeb(path: String) {
@@ -119,4 +152,8 @@ class MainActivity : Activity() {
     private fun isDone(actionId: Int, event: KeyEvent?): Boolean =
         actionId == EditorInfo.IME_ACTION_DONE ||
             (event?.keyCode == KeyEvent.KEYCODE_ENTER && event.action == KeyEvent.ACTION_DOWN)
+
+    private companion object {
+        const val REQUEST_NOTIFICATION = 1
+    }
 }

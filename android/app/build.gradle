@@ -5,13 +5,13 @@ plugins {
 
 android {
     namespace 'com.onelinecapture'
-    compileSdk 35
+    compileSdk 36
 
     defaultConfig {
         applicationId 'com.onelinecapture'
         // 26: 알림 채널이 생긴 버전. 그 아래는 알림창 입력을 따로 만들어야 해서 버린다 (국내 점유율 1% 미만)
         minSdk 26
-        targetSdk 35
+        targetSdk 36
         versionCode 1
         versionName '1.0.0'
         // 서버 주소는 여기 한 곳에만 둔다 (stack.md §8)
